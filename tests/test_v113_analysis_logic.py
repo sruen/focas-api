@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from focas_engine.io import load_input
-from focas_engine.models import CompanyOdds, NarrativeMaterial, OddsSnapshot
+from focas_engine.models import CompanyOdds, NarrativeMaterial, OddsSnapshot, StrengthContext
 from focas_engine.narrative_audit import build_narrative_audit
 from focas_engine.odds_coordinate import build_odds_coordinates
 from focas_engine.odds_system import build_odds_system_conversions
@@ -144,6 +144,26 @@ def test_opening_audit_reads_theoretical_range_from_detected_company_system(mini
         "NO_OPTIMAL_SOLUTION",
         "NO_BET_STRUCTURE",
     }
+
+
+def test_strength_source_review_continues_into_solution_audit(mini_table):
+    match, _, pulls, mode, odds = load_input(Path("examples") / "valid_complete_match_input.json")
+    match.home.recent_matches = ["2-0", "1-1", "1-0", "0-1", "2-1"]
+    match.away.recent_matches = ["1-0", "0-0", "1-2", "2-0", "1-1"]
+    result = FocasPipeline(table_path=mini_table).run(
+        match=match,
+        strength=StrengthContext(),
+        pulls=pulls,
+        narrative_materials=_structured_materials(),
+        book_mode=mode,
+        odds=odds,
+    )
+    assert result.stop is False
+    assert result.stop_node is None
+    assert result.strength_source == "AUTO_ESTIMATED_REVIEW_REQUIRED"
+    assert result.opening_board_audit is not None
+    assert result.optimal_solution_audit is not None
+    assert result.final_structure_judgement is not None
 
 
 def test_frontend_report_exposes_opening_skeleton_reasonableness_audit(mini_table):
