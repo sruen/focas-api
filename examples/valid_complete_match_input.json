@@ -1,0 +1,106 @@
+{
+  "match": {
+    "home_team": "海港城",
+    "away_team": "北岸联",
+    "competition": "测试联赛",
+    "kickoff_time": "2026-06-08 20:00",
+    "stage": "联赛第12轮",
+    "neutral_venue": false,
+    "single_leg": false,
+    "match_type": "联赛",
+    "extra_time_or_penalties": "常规联赛无加时点球",
+    "real_home_away": true,
+    "attention_level": "中等关注度",
+    "league_for_table": "西甲"
+  },
+  "home_context": {
+    "name": "海港城",
+    "rank": "第4",
+    "points": "24分",
+    "recent_matches": ["W 2-0", "D 1-1", "W 1-0", "L 0-1", "W 2-1"],
+    "venue_adaptation": "主场适应稳定",
+    "attack_state": "进攻稳定，近五场持续创造机会",
+    "defense_state": "防守稳定，失球控制正常",
+    "injuries": "一名轮换球员缺阵，主力框架完整",
+    "schedule_fatigue": "一周一赛，体能正常",
+    "motivation": "争取联赛积分，战意明确",
+    "popularity_story": "本地关注度较高，市场人气中上",
+    "major_recent_matches": "近期面对排名相近球队表现稳定"
+  },
+  "away_context": {
+    "name": "北岸联",
+    "rank": "第6",
+    "points": "21分",
+    "recent_matches": ["W 1-0", "D 0-0", "L 1-2", "W 2-0", "D 1-1"],
+    "venue_adaptation": "客场适应正常",
+    "attack_state": "进攻状态正常，效率存在波动",
+    "defense_state": "防守整体正常，客场有少量失位",
+    "injuries": "阵容完整，无重大伤停",
+    "schedule_fatigue": "赛程正常，体能无明显劣势",
+    "motivation": "争取联赛积分，战意明确",
+    "popularity_story": "市场人气中等",
+    "major_recent_matches": "近期面对强队取得平局"
+  },
+  "h2h": {
+    "overall": "近十次交锋主队四胜三平三负",
+    "recent_years": "近三年交锋整体接近",
+    "same_competition": "同赛事近六次主队略占优",
+    "venue_specific": "主队近四个主场两胜一平一负",
+    "latest_key_match": "最近一次关键交锋双方一比一战平",
+    "market_psychology": "往绩使主胜保留关注度，同时给平局一定承接空间"
+  },
+  "strength": {
+    "home_grade": "中上",
+    "away_grade": "中游",
+    "static_gap": "主队高一档",
+    "dynamic_adjustment": "主队主场适应略优，动态关系维持主队高一档",
+    "final_gap": "主队高一档"
+  },
+  "natural_pulls": [
+    {
+      "direction": "主胜",
+      "strength": "强",
+      "facts": "主队排名、主场适应和往绩略占优",
+      "market_psychology": "市场第一眼容易先看主胜",
+      "popularity_direction": "主项人气较集中",
+      "easy_to_receive": true,
+      "first_eye_direction": true
+    },
+    {
+      "direction": "平局",
+      "strength": "中",
+      "facts": "双方近况接近，往绩存在平局承接",
+      "market_psychology": "平局具备自然分散价值",
+      "popularity_direction": "平局人气中等",
+      "easy_to_receive": true,
+      "first_eye_direction": false
+    },
+    {
+      "direction": "客胜",
+      "strength": "弱",
+      "facts": "客队具备抵抗力但整体人气弱于主队",
+      "market_psychology": "客胜需要赔率回报提高吸引力",
+      "popularity_direction": "客项人气偏弱",
+      "easy_to_receive": false,
+      "first_eye_direction": false
+    }
+  ],
+  "original_book_mode": {},
+  "odds": [
+    {
+      "company": "William",
+      "initial": {"home": 2.1, "draw": 3.2, "away": 3.6},
+      "current": {"home": 2.12, "draw": 3.18, "away": 3.58}
+    },
+    {
+      "company": "Ladbrokes",
+      "initial": {"home": 2.08, "draw": 3.25, "away": 3.65},
+      "current": {"home": 2.1, "draw": 3.2, "away": 3.6}
+    },
+    {
+      "company": "Avg",
+      "initial": {"home": 2.09, "draw": 3.22, "away": 3.62},
+      "current": {"home": 2.11, "draw": 3.19, "away": 3.59}
+    }
+  ]
+}

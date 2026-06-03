@@ -1,0 +1,23 @@
+{
+  "match": {
+    "home_team": "主队名称",
+    "away_team": "客队名称",
+    "competition": "赛事名称",
+    "kickoff_time": "2026-06-08 20:00",
+    "stage": "决赛/半决赛/联赛第X轮/小组赛第X轮",
+    "neutral_venue": false,
+    "single_leg": true,
+    "match_type": "联赛/淘汰赛/决赛/小组赛",
+    "extra_time_or_penalties": "无/有加时点球/两回合规则",
+    "real_home_away": true,
+    "attention_level": "高/中/低",
+    "league_for_table": "西甲"
+  },
+  "home_context": {"name": "主队名称"},
+  "away_context": {"name": "客队名称"},
+  "h2h": {},
+  "strength": {},
+  "natural_pulls": [],
+  "original_book_mode": {},
+  "odds": []
+}

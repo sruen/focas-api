@@ -1,0 +1,50 @@
+{
+  "match": {
+    "home_team": "海港城",
+    "away_team": "北岸联",
+    "competition": "测试联赛",
+    "kickoff_time": "2026-06-08 20:00",
+    "stage": "联赛第12轮",
+    "neutral_venue": false,
+    "single_leg": false,
+    "match_type": "联赛",
+    "extra_time_or_penalties": "常规联赛无加时点球",
+    "real_home_away": true,
+    "attention_level": "中等关注度",
+    "league_for_table": "西甲"
+  },
+  "home_context": {
+    "name": "海港城", "rank": "第4", "points": "24分",
+    "recent_matches": ["W 2-0", "D 1-1", "W 1-0", "L 0-1", "W 2-1"],
+    "venue_adaptation": "主场适应稳定", "attack_state": "进攻稳定", "defense_state": "防守稳定",
+    "injuries": "主力框架完整", "schedule_fatigue": "体能正常", "motivation": "战意明确",
+    "popularity_story": "市场人气中上", "major_recent_matches": "近期表现稳定"
+  },
+  "away_context": {
+    "name": "北岸联", "rank": "第6", "points": "21分",
+    "recent_matches": ["W 1-0", "D 0-0", "L 1-2", "W 2-0", "D 1-1"],
+    "venue_adaptation": "客场适应正常", "attack_state": "进攻正常", "defense_state": "防守正常",
+    "injuries": "阵容完整", "schedule_fatigue": "体能正常", "motivation": "战意明确",
+    "popularity_story": "市场人气中等", "major_recent_matches": "近期表现正常"
+  },
+  "h2h": {
+    "overall": "近十次交锋主队四胜三平三负", "recent_years": "近三年整体接近",
+    "same_competition": "同赛事交锋接近", "venue_specific": "主场交锋略占优",
+    "latest_key_match": "最近一次一比一战平", "market_psychology": "往绩给平局一定承接"
+  },
+  "strength": {
+    "home_grade": "中上", "away_grade": "中游", "static_gap": "主队高一档",
+    "dynamic_adjustment": "主队主场适应略优", "final_gap": "主队高一档"
+  },
+  "natural_pulls": [
+    {"direction": "主胜", "strength": "强", "facts": "主场略优", "market_psychology": "先看主胜", "popularity_direction": "主项", "easy_to_receive": true, "first_eye_direction": true},
+    {"direction": "平局", "strength": "中", "facts": "双方接近", "market_psychology": "平局可分散", "popularity_direction": "平项", "easy_to_receive": true, "first_eye_direction": false},
+    {"direction": "客胜", "strength": "弱", "facts": "客队人气较弱", "market_psychology": "客项承载弱", "popularity_direction": "客项", "easy_to_receive": false, "first_eye_direction": false}
+  ],
+  "original_book_mode": {},
+  "odds": [
+    {"company": "William", "initial": {"home": 3.0, "draw": 4.0, "away": 5.0}, "current": {"home": 3.1, "draw": 4.1, "away": 5.1}},
+    {"company": "Ladbrokes", "initial": {"home": 2.08, "draw": 3.25, "away": 3.65}, "current": {"home": 2.1, "draw": 3.2, "away": 3.6}},
+    {"company": "Avg", "initial": {"home": 2.09, "draw": 3.22, "away": 3.62}, "current": {"home": 2.11, "draw": 3.19, "away": 3.59}}
+  ]
+}

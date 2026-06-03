@@ -1,0 +1,432 @@
+{
+  "updated_at": "2026-06-02T05:34:43.943031+00:00",
+  "total_samples": 4,
+  "samples": {
+    "PMS-20260602-80ee85406c6a": {
+      "match_id": "4544830",
+      "home_team": "保加利亚",
+      "away_team": "黑山",
+      "competition": "国际友谊赛",
+      "final_score": "0-1",
+      "pre_match_direction": "负",
+      "final_direction": "负",
+      "actual_outcome": "负",
+      "direction_hit": true,
+      "logic_hit": true,
+      "home_strength_grade": "中下",
+      "away_strength_grade": "中下/中游边缘",
+      "strength_diff": "客队高0.5档",
+      "theoretical_interval": "浅客优势可承载区间",
+      "promotion_status": "candidate",
+      "similar_sample_key": "浅客优势_初赔右倾_低平干扰_负赔承载",
+      "structure_key_coarse": "浅客优势_初赔右倾_低平干扰_负赔承载",
+      "structure_key_exact": "浅客优势_初赔右倾_低平干扰_负赔承载::4544830",
+      "movement_key": "低平分散::负赔可承载::终赔验证客胜",
+      "decision_key": "prematch_负_actual_负_hit"
+    },
+    "PMS-20260602-10296131dcd8": {
+      "match_id": "4531723",
+      "home_team": "挪威",
+      "away_team": "瑞典",
+      "competition": "国际友谊赛",
+      "final_score": "3-1",
+      "pre_match_direction": "平",
+      "final_direction": "平",
+      "actual_outcome": "胜",
+      "direction_hit": false,
+      "logic_hit": true,
+      "home_strength_grade": "中上",
+      "away_strength_grade": "中上",
+      "strength_diff": "主队略高/接近同档",
+      "theoretical_interval": "主胜承载区间",
+      "promotion_status": "candidate",
+      "similar_sample_key": "终赔压主抬平抬负_主胜承载_旧快照失效",
+      "structure_key_coarse": "终赔压主抬平抬负_主胜承载_旧快照失效",
+      "structure_key_exact": "终赔压主抬平抬负_主胜承载_旧快照失效::4531723",
+      "movement_key": "终赔压主::抬平抬负::主胜赔付控制",
+      "decision_key": "prematch_平_actual_胜_miss"
+    },
+    "postmatch_2026-06-01_austria_vs_tunisia_1-0": {
+      "match_id": "4541810",
+      "home_team": "奥地利",
+      "away_team": "突尼斯",
+      "competition": "国际友谊",
+      "final_score": "1-0",
+      "pre_match_direction": "胜",
+      "final_direction": "胜",
+      "actual_outcome": "胜",
+      "direction_hit": true,
+      "logic_hit": true,
+      "home_strength_grade": "准强/中强",
+      "away_strength_grade": "中游/中下",
+      "strength_diff": "主队高1档以上",
+      "theoretical_interval": "主胜低赔可承载区间",
+      "promotion_status": "candidate",
+      "similar_sample_key": "强势主队真实主胜_防守客队平局分流_主胜小胜",
+      "structure_key_coarse": "强势主队真实主胜_防守客队平局分流_主胜小胜",
+      "structure_key_exact": "强势主队真实主胜_防守客队平局分流_主胜小胜::4541810",
+      "movement_key": "主赔持续压低::平负高位::小胜结构",
+      "decision_key": "prematch_胜_actual_胜_hit"
+    },
+    "postmatch_2026-06-02_canada_vs_uzbekistan_2-0": {
+      "match_id": "4512476",
+      "home_team": "加拿大",
+      "away_team": "乌兹别克",
+      "competition": "国际友谊",
+      "final_score": "2-0",
+      "pre_match_direction": "平",
+      "final_direction": "平",
+      "actual_outcome": "胜",
+      "direction_hit": false,
+      "logic_hit": true,
+      "home_strength_grade": "中上",
+      "away_strength_grade": "中游",
+      "strength_diff": "主队高0.5-1档",
+      "theoretical_interval": "理论4区/主胜心理区间",
+      "promotion_status": "candidate",
+      "similar_sample_key": "强拉主胜_回心理区间_平负分散_主胜真实",
+      "structure_key_coarse": "强拉主胜_回心理区间_平负分散_主胜真实",
+      "structure_key_exact": "强拉主胜_回心理区间_平负分散_主胜真实::4512476",
+      "movement_key": "初赔强拉主胜::主赔回心理区间::平负同步下拉",
+      "decision_key": "prematch_平_actual_胜_miss"
+    }
+  },
+  "by_match": {
+    "保加利亚::黑山": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "挪威::瑞典": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "奥地利::突尼斯": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "加拿大::乌兹别克": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_tag": {
+    "浅客优势": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "初赔右倾": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "低平分散": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "负赔承载": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "平局未升级": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "客胜兑现": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "William": [
+      "PMS-20260602-80ee85406c6a",
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "Ladbrokes": [
+      "PMS-20260602-80ee85406c6a",
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "BetVictor": [
+      "PMS-20260602-80ee85406c6a",
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "负赔可承载": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔验证客胜": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "主胜承载": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "终赔覆盖早盘": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "压主抬平抬负": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "赔率版本失控": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "热度等同诱盘": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "自然拉力等同保护": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "未触发终赔重跑": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主胜承载低估": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "终赔压主": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "抬平抬负": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主胜赔付控制": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主胜真实信心": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "强势主队": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "防守型客队": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "平局题材分流": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "主胜小胜": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "平负高位陪衬": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "主赔持续压低": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "客胜承载不足": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "平负高位": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "小胜结构": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "主胜真实": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "平负分散": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "初赔超区间二次确认": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "主赔回心理区间": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "初赔超区间误判为利诱": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "主赔回心理区间误判为撤主": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "William平赔保护权重过高": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "Ladbrokes平赔反证处理不足": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "客赔回收误判为胜负双分平": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "主胜自然拉力承载评估不足": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "初赔强拉主胜": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "平负同步下拉": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_similar_sample_key": {
+    "浅客优势_初赔右倾_低平干扰_负赔承载": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔压主抬平抬负_主胜承载_旧快照失效": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "强势主队真实主胜_防守客队平局分流_主胜小胜": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "强拉主胜_回心理区间_平负分散_主胜真实": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_structure_key_coarse": {
+    "浅客优势_初赔右倾_低平干扰_负赔承载": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔压主抬平抬负_主胜承载_旧快照失效": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "强势主队真实主胜_防守客队平局分流_主胜小胜": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "强拉主胜_回心理区间_平负分散_主胜真实": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_structure_key_exact": {
+    "浅客优势_初赔右倾_低平干扰_负赔承载::4544830": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔压主抬平抬负_主胜承载_旧快照失效::4531723": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "强势主队真实主胜_防守客队平局分流_主胜小胜::4541810": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "强拉主胜_回心理区间_平负分散_主胜真实::4512476": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_movement_key": {
+    "低平分散::负赔可承载::终赔验证客胜": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔压主::抬平抬负::主胜赔付控制": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主赔持续压低::平负高位::小胜结构": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "初赔强拉主胜::主赔回心理区间::平负同步下拉": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_decision_key": {
+    "prematch_负_actual_负_hit": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "prematch_平_actual_胜_miss": [
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "prematch_胜_actual_胜_hit": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ]
+  },
+  "by_strength_diff": {
+    "客队高0.5档": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "主队略高/接近同档": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主队高1档以上": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "主队高0.5-1档": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_theoretical_interval": {
+    "浅客优势可承载区间": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "主胜承载区间": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主胜低赔可承载区间": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "理论4区/主胜心理区间": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_final_direction": {
+    "负": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "平": [
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "胜": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ]
+  },
+  "by_actual_outcome": {
+    "负": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "胜": [
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_error_type": {
+    "命中样本": [
+      "PMS-20260602-80ee85406c6a",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "方向误判": [
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_company_alignment": {
+    "核心公司方向一致": [
+      "PMS-20260602-80ee85406c6a",
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_odds_pattern": {
+    "低平分散": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "负赔可承载": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔验证客胜": [
+      "PMS-20260602-80ee85406c6a"
+    ],
+    "终赔压主": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "抬平抬负": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主胜赔付控制": [
+      "PMS-20260602-10296131dcd8"
+    ],
+    "主赔持续压低": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "平负高位": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "小胜结构": [
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0"
+    ],
+    "初赔强拉主胜": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "主赔回心理区间": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ],
+    "平负同步下拉": [
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  },
+  "by_promotion_status": {
+    "candidate": [
+      "PMS-20260602-80ee85406c6a",
+      "PMS-20260602-10296131dcd8",
+      "postmatch_2026-06-01_austria_vs_tunisia_1-0",
+      "postmatch_2026-06-02_canada_vs_uzbekistan_2-0"
+    ]
+  }
+}
