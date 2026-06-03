@@ -54,11 +54,10 @@ paths:
       operationId: verifyIndependentJudgement
       summary: Verify GPT independent judgement against audited materials
       description: >
-        Submit the material audit payload and GPT's independent judgement.
-        The API checks for conflicts such as matrix mismatch, missing material,
-        unresolved hard vetoes, grade overreach, and movement contradictions.
-        It returns ALLOW/DOWNGRADE/REVIEW/REJECT style verification. It does not
-        select a new direction.
+        Submit the material audit and GPT independent judgement. The API checks
+        matrix support, missing materials, unresolved vetoes, grade overreach,
+        and movement conflicts. It returns ALLOW, DOWNGRADE, REVIEW, or REJECT;
+        it does not select a new direction.
       x-openai-isConsequential: false
       security:
         - FocasApiKey: []
