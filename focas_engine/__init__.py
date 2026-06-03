@@ -1,0 +1,5 @@
+__version__ = "1.0.2"
+Build_Status = "CLEAN_SOURCE"
+Engine_Runtime = "v1.0.2"
+Rule_Lock = "v1.7_MAINLINE_ADVERSE_DIRECTION_LOCK"
+Hard_Data_Source = "FOCAS_89_96_MODERN_SKELETON_INTERVAL_COMPACT_v5_CORRECTED_MARKET_LADDER.xlsx"

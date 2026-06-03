@@ -1,0 +1,146 @@
+openapi: 3.1.0
+info:
+  title: FOCAS Match Analysis API
+  version: 1.1.5
+  description: >
+    Runs the FOCAS evidence pipeline. Odds values are never numerically converted.
+    Return rate is used only to route each institution snapshot to the matching
+    89-96 skeleton sheet.
+servers:
+  - url: https://YOUR_DOMAIN
+paths:
+  /v1/analyze:
+    post:
+      operationId: analyzeFocasMatch
+      summary: Analyze a football match with the FOCAS evidence pipeline
+      description: >
+        Submit normalized match facts and institution odds. Always call this
+        operation before explaining institution motives or giving a structural
+        direction. Do not override PASS or REVIEW_REQUIRED.
+      x-openai-isConsequential: false
+      security:
+        - FocasApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [match_input]
+              properties:
+                include_report:
+                  type: boolean
+                  default: false
+                  description: Return the long Markdown report only when the user requests it.
+                match_input:
+                  $ref: "#/components/schemas/MatchInput"
+      responses:
+        "200":
+          description: FOCAS structured evidence response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Invalid match input
+        "401":
+          description: Invalid API key
+components:
+  securitySchemes:
+    FocasApiKey:
+      type: http
+      scheme: bearer
+  schemas:
+    MatchInput:
+      type: object
+      required: [match, home_context, away_context, h2h, strength, natural_pulls, odds]
+      additionalProperties: true
+      properties:
+        match:
+          type: object
+          required: [home_team, away_team]
+          additionalProperties: true
+          properties:
+            home_team: {type: string}
+            away_team: {type: string}
+            competition: {type: string}
+            kickoff_time: {type: string}
+            stage: {type: string}
+            neutral_venue: {type: boolean}
+            single_leg: {type: boolean}
+            match_type: {type: string}
+            extra_time_or_penalties: {type: string}
+            real_home_away: {type: boolean}
+            attention_level: {type: string}
+            league_for_table: {type: string}
+        home_context:
+          $ref: "#/components/schemas/TeamContext"
+        away_context:
+          $ref: "#/components/schemas/TeamContext"
+        h2h:
+          type: object
+          additionalProperties: true
+        strength:
+          type: object
+          additionalProperties: true
+          properties:
+            home_grade: {type: string}
+            away_grade: {type: string}
+            static_gap: {type: string}
+            dynamic_adjustment: {type: string}
+            final_gap: {type: string}
+        natural_pulls:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        narrative_materials:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        original_book_mode:
+          type: object
+          additionalProperties: true
+        odds:
+          type: array
+          minItems: 3
+          items:
+            $ref: "#/components/schemas/CompanyOdds"
+    TeamContext:
+      type: object
+      additionalProperties: true
+      properties:
+        name: {type: string}
+        rank: {type: string}
+        points: {type: string}
+        recent_matches:
+          type: array
+          items: {type: string}
+        venue_adaptation: {type: string}
+        attack_state: {type: string}
+        defense_state: {type: string}
+        injuries: {type: string}
+        schedule_fatigue: {type: string}
+        motivation: {type: string}
+        popularity_story: {type: string}
+        major_recent_matches: {type: string}
+    CompanyOdds:
+      type: object
+      required: [company, initial, current]
+      properties:
+        company:
+          type: string
+          enum: [William, Ladbrokes, Avg]
+        initial:
+          $ref: "#/components/schemas/OddsSnapshot"
+        current:
+          $ref: "#/components/schemas/OddsSnapshot"
+    OddsSnapshot:
+      type: object
+      required: [home, draw, away]
+      properties:
+        home: {type: number}
+        draw: {type: number}
+        away: {type: number}
