@@ -146,17 +146,16 @@ def _movement_contradiction_audit(payload: dict[str, Any]) -> list[dict[str, Any
     return out
 
 
+
 def _gpt_execution_gate(payload: dict[str, Any]) -> dict[str, Any]:
-    optimal = payload.get("optimal_solution_audit") or {}
-    final = payload.get("final_structure_judgement") or {}
+    """Material-only gate for GPT.
+
+    This gate deliberately does not authorize a backend final direction. It only
+    tells GPT whether the material package is usable for independent V3.9.1/V4
+    reasoning.
+    """
+
     status_payload = payload.get("status") or {}
-    status = optimal.get("solution_status") or final.get("status") or status_payload.get("decision_status")
-    scenarios = optimal.get("scenarios") or []
-    scenario_directions = [
-        item.get("target_direction")
-        for item in scenarios
-        if isinstance(item, dict) and item.get("target_direction")
-    ]
     required_audits = [
         "fundamental_topic_audit",
         "strength_dynamic_audit",
@@ -168,23 +167,20 @@ def _gpt_execution_gate(payload: dict[str, Any]) -> dict[str, Any]:
         "pre_odds_predicted_odds_audit",
         "three_direction_development_matrix",
         "bookmaker_topic_usage_audit",
-        "optimal_solution_audit",
-        "future_adjustment_plan",
-        "final_structure_judgement",
     ]
     missing_audits = [key for key in required_audits if not payload.get(key)]
     stop = bool(status_payload.get("stop"))
-    all_three_scenarios_present = {"主胜", "平局", "客胜"}.issubset(set(scenario_directions))
-    final_output_allowed = (not stop) and not missing_audits and all_three_scenarios_present
+    material_audit_allowed = (not stop) and not missing_audits
 
     return {
         "stop": stop,
         "stop_node": status_payload.get("stop_node"),
         "stop_reason": status_payload.get("stop_reason"),
-        "final_output_allowed": final_output_allowed,
+        "material_audit_allowed": material_audit_allowed,
+        "final_output_allowed": False,
+        "final_direction_policy": "GPT_INDEPENDENT_JUDGEMENT_REQUIRED",
+        "backend_final_policy": "REFERENCE_ONLY_NOT_AN_ANSWER_ANCHOR",
         "missing_audits": missing_audits,
-        "scenario_directions_present": scenario_directions,
-        "all_three_scenarios_present": all_three_scenarios_present,
         "read_order": [
             "fundamental_topic_audit",
             "strength_dynamic_audit",
@@ -196,41 +192,28 @@ def _gpt_execution_gate(payload: dict[str, Any]) -> dict[str, Any]:
             "pre_odds_predicted_odds_audit",
             "three_direction_development_matrix",
             "bookmaker_topic_usage_audit",
-            "optimal_solution_audit.scenarios",
             "movement_contradiction_audit",
-            "future_adjustment_plan",
-            "final_structure_judgement",
+            "backend_reference_judgement",
         ],
-        "final_direction_policy": "READ_LAST_ONLY",
-        "all_three_scenarios_required": True,
-        "must_explain_before_final": [
-            "six_fundamental_topic_categories",
-            "strength_dynamic_audit",
-            "original_distribution_type",
-            "three_direction_market_pull",
-            "three_direction_opening_position",
-            "three_direction_movement",
-            "pre_odds_predicted_odds_formula_gate",
-            "three_direction_development_matrix",
-            "bookmaker_topic_usage_by_direction",
-            "home_draw_away_optimal_solution_scenarios",
-            "movement_vs_pull_contradictions",
+        "must_complete_before_judgement": [
+            "basic_context_and_fundamental_first_eye",
+            "theoretical_development_position_or_predicted_opening_interval",
+            "actual_opening_position_comparison",
+            "William_and_Ladbrokes_opening_anchor",
+            "movement_permission_audit",
+            "three_result_optimal_solution_reasoning_by_GPT",
+            "reverse_audit_cost_ranking_by_GPT",
+            "five_counter_questions_by_GPT",
+            "one_paragraph_bookmaker_mainline_summary",
         ],
-        "better_solution_only": status == "BETTER_SOLUTION_ONLY",
-        "better_solution_policy": (
-            "If solution_status or final status is BETTER_SOLUTION_ONLY, GPT must say it is not a clean optimal solution, "
-            "only the highest-explanation relative solution, and must explain contradictions before final judgement."
-        ),
         "forbidden_shortcuts": [
-            "Do not use final_structure_judgement.direction as the answer outline.",
-            "Do not describe BETTER_SOLUTION_ONLY as a clean optimal solution.",
-            "Do not explain odds movement before explaining available fundamental topics.",
-            "Do not skip draw and away scenarios when selected_direction is home.",
+            "Do not use backend_reference_judgement as the answer outline.",
+            "Do not treat BETTER_SOLUTION_ONLY or reference_lean as final direction.",
+            "Do not skip independent three-result optimal-solution reasoning.",
             "Do not call an opening price '拉低' or '抬高'; only movement can be described that way.",
-            "Do not invent broad-strength grades; use strength_dynamic_audit only.",
+            "Do not invent broad-strength grades; use strength_dynamic_audit or user-provided match context only.",
             "Do not invent exact predicted development odds when formula gate is not confirmed.",
-            "Do not skip original_distribution_audit.distribution_type.",
-            "Do not write only pull percentages without distribution type.",
+            "Do not write only tables; final judgement must include a bookmaker mainline paragraph.",
         ],
         "exact_predicted_odds_allowed": bool(
             (payload.get("pre_odds_predicted_odds_audit") or {}).get("gpt_may_generate_exact_odds") is True
@@ -239,39 +222,63 @@ def _gpt_execution_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def analyze_match_input(
-    match_input: dict[str, Any],
-    *,
-    table_path: str | Path | None = None,
-    include_report: bool = False,
-) -> dict[str, Any]:
-    """Run FOCAS and return the evidence boundary consumed by a GPT Action."""
+def _scrub_directional_keys(value: Any) -> Any:
+    """Remove backend-selected directions so the API cannot anchor GPT."""
 
-    _validate_recent_matches(match_input)
-    loaded = parse_raw_input(match_input)
+    if isinstance(value, dict):
+        blocked = {"direction", "selected_direction", "final_direction", "structural_lean"}
+        return {
+            key: _scrub_directional_keys(item)
+            for key, item in value.items()
+            if key not in blocked
+        }
+    if isinstance(value, list):
+        return [_scrub_directional_keys(item) for item in value]
+    return value
+
+
+def _backend_reference(result: Any) -> dict[str, Any]:
+    return {
+        "reference_only": True,
+        "policy": "Backend judgement is intentionally scrubbed and may not anchor GPT. GPT must independently apply V3.9.1 initial-anchor, movement-permission, reverse-audit and counter-question logic.",
+        "decision_status": result.decision_status,
+        "mainline_output_status": result.mainline_output_status,
+        "reference_lean_present": bool(getattr(result, "structural_lean", None)),
+        "final_judgement_present": bool(getattr(result, "final_structure_judgement", None)),
+        "scrubbed_final_structure_judgement": _scrub_directional_keys(
+            asdict(result.final_structure_judgement) if result.final_structure_judgement else None
+        ),
+    }
+
+
+def _scrub_optimal_solution(optimal: Any) -> dict[str, Any] | None:
+    if optimal is None:
+        return None
+    data = asdict(optimal)
+    if "selected_direction" in data:
+        data["reference_selected_direction_removed"] = True
+        data.pop("selected_direction", None)
+    return data
+
+
+def _build_material_payload(result: Any, loaded: Any, include_report: bool) -> dict[str, Any]:
     match, strength, pulls, book_mode, odds = loaded.as_tuple()
-    result = FocasPipeline(table_path=str(table_path or DEFAULT_TABLE_PATH)).run(
-        match=match,
-        strength=strength,
-        pulls=pulls,
-        narrative_materials=loaded.narrative_materials,
-        book_mode=book_mode,
-        odds=odds,
-    )
     interval_audit = result.interval_audit
     payload: dict[str, Any] = {
-        "api_schema_version": "1.0",
-        "engine_version": "1.1.5",
+        "api_schema_version": "1.1-material",
+        "engine_version": "1.1.5-material-audit",
         "analysis_contract": {
+            "core_instruction_version": "FOCASGPT_CORE_INSTRUCTIONS_v1.0",
+            "judgement_layer": "PROJECT_SOURCES_V3.9.1_PLUS_V4",
+            "backend_role": "MATERIAL_AUDIT_AND_CONFLICT_CHECK_ONLY",
             "odds_numerical_conversion_allowed": False,
             "odds_comparison_basis": "raw_institution_odds",
             "return_rate_usage": "route_to_matching_89_96_system_sheet_only",
-            "institution_motive_requires_confirmed_skeleton_audit": True,
-            "analysis_mode": "FINAL_PASS_GATE_DISABLED",
-            "lean_output_allowed": True,
-            "final_structure_judgement_policy": "READ_LAST_AFTER_REQUIRED_AUDITS",
-            "legacy_pass_gate_replaced_by_optimal_solution_layer": True,
-            "optimal_solution_layer_enabled": True,
+            "analysis_mode": "MATERIAL_AUDIT_ONLY",
+            "lean_output_allowed": False,
+            "backend_final_is_reference_only": True,
+            "final_structure_judgement_removed_from_primary_payload": True,
+            "gpt_independent_judgement_required": True,
             "market_pull_percent_means": "market_psychological_pull_share_not_match_probability",
             "three_direction_board_audit_enabled": True,
         },
@@ -286,11 +293,7 @@ def analyze_match_input(
             "stop_node": result.stop_node,
             "stop_reason": result.stop_reason,
             "report_mode": result.report_mode,
-            "decision_status": result.decision_status,
-            "mainline_output_status": result.mainline_output_status,
             "odds_analysis_status": result.odds_analysis_status,
-            "final_direction": result.final_direction,
-            "structural_lean": result.structural_lean,
             "strength_source": result.strength_source,
             "table_read_confirmed": result.table_read_confirmed,
             "expected_interval_status": result.expected_interval_status,
@@ -326,18 +329,14 @@ def analyze_match_input(
         "market_pull_audit": asdict(result.market_pull_audit)
         if result.market_pull_audit
         else None,
-        "optimal_solution_audit": asdict(result.optimal_solution_audit)
-        if result.optimal_solution_audit
-        else None,
+        "scenario_simulation_reference": _scrub_optimal_solution(result.optimal_solution_audit),
         "bookmaker_topic_usage_audit": asdict(result.bookmaker_topic_usage_audit)
         if result.bookmaker_topic_usage_audit
         else None,
-        "future_adjustment_plan": asdict(result.future_adjustment_plan)
+        "future_adjustment_reference": asdict(result.future_adjustment_plan)
         if result.future_adjustment_plan
         else None,
-        "final_structure_judgement": asdict(result.final_structure_judgement)
-        if result.final_structure_judgement
-        else None,
+        "backend_reference_judgement": _backend_reference(result),
         "opening_motive_chain": _opening_motives(result),
         "narrative_audit": asdict(result.narrative_audit) if result.narrative_audit else None,
         "scenario_audit": asdict(result.scenario_audit) if result.scenario_audit else None,
@@ -373,10 +372,10 @@ def analyze_match_input(
         "opening_board_audit",
         "pre_odds_predicted_odds_audit",
         "three_direction_development_matrix",
-        "optimal_solution_audit",
+        "scenario_simulation_reference",
         "bookmaker_topic_usage_audit",
-        "future_adjustment_plan",
-        "final_structure_judgement",
+        "future_adjustment_reference",
+        "backend_reference_judgement",
         "opening_motive_chain",
         "narrative_audit",
         "scenario_audit",
@@ -398,3 +397,195 @@ def analyze_match_input(
             result=result,
         )
     return payload
+
+
+def audit_match_input(
+    match_input: dict[str, Any],
+    *,
+    table_path: str | Path | None = None,
+    include_report: bool = False,
+) -> dict[str, Any]:
+    """Run FOCAS as a material-audit boundary consumed by GPT Actions."""
+
+    _validate_recent_matches(match_input)
+    loaded = parse_raw_input(match_input)
+    match, strength, pulls, book_mode, odds = loaded.as_tuple()
+    result = FocasPipeline(table_path=str(table_path or DEFAULT_TABLE_PATH)).run(
+        match=match,
+        strength=strength,
+        pulls=pulls,
+        narrative_materials=loaded.narrative_materials,
+        book_mode=book_mode,
+        odds=odds,
+    )
+    return _build_material_payload(result, loaded, include_report=include_report)
+
+
+def analyze_match_input(
+    match_input: dict[str, Any],
+    *,
+    table_path: str | Path | None = None,
+    include_report: bool = False,
+) -> dict[str, Any]:
+    """Backward-compatible alias. Returns material audit, not final judgement."""
+
+    return audit_match_input(match_input, table_path=table_path, include_report=include_report)
+
+
+def _matrix_item(audit_payload: dict[str, Any], direction: str) -> dict[str, Any] | None:
+    for item in audit_payload.get("three_direction_development_matrix") or []:
+        if isinstance(item, dict) and item.get("target_direction") == direction:
+            return item
+    return None
+
+
+def _severity_rank(severity: str) -> int:
+    return {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "HARD_STOP": 4}.get(severity, 0)
+
+
+def verify_independent_judgement(
+    *,
+    audit_payload: dict[str, Any],
+    independent_judgement: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate GPT's independent judgement without selecting a new direction."""
+
+    direction = independent_judgement.get("selected_direction") or independent_judgement.get("direction")
+    requested_grade = independent_judgement.get("structure_grade") or independent_judgement.get("grade")
+    excluded = independent_judgement.get("excluded_directions") or []
+    conflicts: list[dict[str, Any]] = []
+    hard_vetoes: list[dict[str, Any]] = []
+
+    if direction not in {"主胜", "平局", "客胜", "胜", "平", "负", "PASS", "胜+平", "平+负"}:
+        conflicts.append({
+            "type": "missing_or_invalid_direction",
+            "severity": "HARD_STOP",
+            "message": "independent_judgement.selected_direction must be 主胜/平局/客胜/胜/平/负/胜+平/平+负/PASS.",
+            "action": "REJECT",
+        })
+
+    normalized = {"胜": "主胜", "平": "平局", "负": "客胜"}.get(direction, direction)
+    item = _matrix_item(audit_payload, normalized) if normalized in {"主胜", "平局", "客胜"} else None
+    matrix_alignment = "NOT_APPLICABLE"
+    max_allowed_grade = "B"
+
+    if item:
+        adoption = str(item.get("adoption_status") or "UNCONFIRMED")
+        if adoption == "ADOPTED":
+            matrix_alignment = "MATCH"
+            max_allowed_grade = "A" if len(excluded) >= 2 else "B"
+        elif adoption in {"PARTIAL_ADOPTED", "STRONG_PARTIAL"}:
+            matrix_alignment = "PARTIAL_MATCH"
+            max_allowed_grade = "B"
+        elif adoption in {"NOT_ADOPTED", "UNCONFIRMED", "OVER_RAISED_REVIEW", "PARTIAL_OR_OVER_RAISED"}:
+            matrix_alignment = "MISMATCH"
+            conflicts.append({
+                "type": "matrix_not_supporting_selected_direction",
+                "severity": "HIGH" if adoption != "NOT_ADOPTED" else "HARD_STOP",
+                "target_direction": normalized,
+                "message": f"three_direction_development_matrix shows adoption_status={adoption}; GPT cannot output this as a strong final structure.",
+                "action": "REJECT" if adoption == "NOT_ADOPTED" else "DOWNGRADE_OR_REVIEW",
+            })
+            max_allowed_grade = "C"
+    elif normalized in {"主胜", "平局", "客胜"}:
+        matrix_alignment = "MISSING"
+        conflicts.append({
+            "type": "matrix_item_missing",
+            "severity": "HIGH",
+            "target_direction": normalized,
+            "message": "No three_direction_development_matrix item found for selected direction.",
+            "action": "REVIEW_REQUIRED",
+        })
+        max_allowed_grade = "C"
+
+    strength_audit = audit_payload.get("strength_dynamic_audit") or {}
+    if strength_audit and strength_audit.get("ok") is False:
+        conflicts.append({
+            "type": "strength_grade_unconfirmed",
+            "severity": "HIGH",
+            "message": "strength_dynamic_audit is not OK; GPT may not give a strong structure.",
+            "action": "DOWNGRADE",
+        })
+        max_allowed_grade = "C"
+
+    gate = audit_payload.get("gpt_execution_gate") or {}
+    if gate.get("material_audit_allowed") is False:
+        conflicts.append({
+            "type": "material_audit_not_allowed",
+            "severity": "HARD_STOP",
+            "message": "Material audit gate did not allow independent final output; missing audits or stop state exists.",
+            "action": "REJECT",
+        })
+
+    for contradiction in audit_payload.get("movement_contradiction_audit") or []:
+        if not isinstance(contradiction, dict):
+            continue
+        target = contradiction.get("target_direction")
+        severity = contradiction.get("severity", "")
+        if target == normalized or _severity_rank(str(severity)) >= 3:
+            conflicts.append({
+                "type": "movement_contradiction_unresolved",
+                "severity": severity or "MEDIUM",
+                "target_direction": target,
+                "message": contradiction.get("message") or "Movement contradiction must be explained before output.",
+                "action": "REVIEW_REQUIRED" if severity != "HIGH" else "DOWNGRADE_OR_REVIEW",
+            })
+
+    # Optional explicit hard vetoes supplied by GPT or future API layers.
+    for veto in independent_judgement.get("hard_vetoes") or []:
+        if isinstance(veto, dict) and veto.get("resolved") is False:
+            hard_vetoes.append(veto)
+            conflicts.append({
+                "type": "hard_veto_unresolved",
+                "severity": "HARD_STOP",
+                "message": veto.get("message") or "Unresolved hard veto.",
+                "action": "REJECT",
+            })
+
+    # Grade overreach guard.
+    grade_order = {"PASS": 0, "C": 1, "B": 2, "B+": 2, "A": 3, "A+": 3, "S": 4}
+    if requested_grade and grade_order.get(str(requested_grade), 0) > grade_order.get(max_allowed_grade, 0):
+        conflicts.append({
+            "type": "grade_exceeds_allowed_level",
+            "severity": "MEDIUM",
+            "message": f"Requested grade {requested_grade} exceeds max_allowed_grade {max_allowed_grade}.",
+            "action": "DOWNGRADE",
+        })
+
+    hard_stop = any(_severity_rank(str(item.get("severity", ""))) >= 4 for item in conflicts)
+    high_conflict = any(_severity_rank(str(item.get("severity", ""))) >= 3 for item in conflicts)
+    if hard_stop:
+        verification_status = "REJECT"
+        direction_allowed = False
+        final_output_allowed = False
+    elif high_conflict:
+        verification_status = "REVIEW_REQUIRED"
+        direction_allowed = True
+        final_output_allowed = False
+    elif conflicts:
+        verification_status = "DOWNGRADED"
+        direction_allowed = True
+        final_output_allowed = True
+    else:
+        verification_status = "PASS_CHECKED"
+        direction_allowed = True
+        final_output_allowed = True
+
+    return {
+        "api_schema_version": "1.1-verification",
+        "verification_contract": {
+            "backend_role": "VERIFY_GPT_JUDGEMENT_ONLY",
+            "does_not_select_new_direction": True,
+            "does_not_override_gpt_reasoning": True,
+        },
+        "verification_status": verification_status,
+        "gpt_selected_direction": direction,
+        "direction_allowed": direction_allowed,
+        "final_output_allowed": final_output_allowed,
+        "max_allowed_grade": max_allowed_grade,
+        "matrix_alignment": matrix_alignment,
+        "two_direction_exclusion": len(excluded) >= 2,
+        "conflicts": conflicts,
+        "hard_vetoes": hard_vetoes,
+        "required_rewrite_points": [item.get("message") for item in conflicts if item.get("message")],
+    }

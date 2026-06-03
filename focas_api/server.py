@@ -9,13 +9,13 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from .service import analyze_match_input
+from .service import audit_match_input, analyze_match_input, verify_independent_judgement
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
 
 
 class FocasApiHandler(BaseHTTPRequestHandler):
-    server_version = "FOCAS-API/1.1.5"
+    server_version = "FOCAS-API/1.1.6-material"
 
     def _write_text(self, status: int, body: str, content_type: str) -> None:
         data = body.encode("utf-8")
@@ -44,7 +44,7 @@ class FocasApiHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
-            self._write_json(200, {"status": "ok", "service": "focas-api", "engine_version": "1.1.5"})
+            self._write_json(200, {"status": "ok", "service": "focas-api", "engine_version": "1.1.6-material"})
             return
         if self.path == "/openapi.yaml":
             schema_path = Path(__file__).with_name("openapi.yaml")
@@ -52,32 +52,50 @@ class FocasApiHandler(BaseHTTPRequestHandler):
             return
         self._write_json(404, {"error": "not_found"})
 
+    def _read_json_body(self) -> dict[str, Any]:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError as exc:
+            raise ValueError("invalid_content_length") from exc
+        if length <= 0 or length > MAX_BODY_BYTES:
+            raise ValueError(f"request_body_size_invalid; max_bytes={MAX_BODY_BYTES}")
+        request = json.loads(self.rfile.read(length).decode("utf-8"))
+        if not isinstance(request, dict):
+            raise ValueError("request body must be a JSON object")
+        return request
+
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/v1/analyze":
+        if self.path not in {"/v1/audit", "/v1/analyze", "/v1/verify"}:
             self._write_json(404, {"error": "not_found"})
             return
         if not self._authorized():
             self._write_json(401, {"error": "unauthorized"})
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            self._write_json(400, {"error": "invalid_content_length"})
-            return
-        if length <= 0 or length > MAX_BODY_BYTES:
-            self._write_json(413, {"error": "request_body_size_invalid", "max_bytes": MAX_BODY_BYTES})
-            return
-        try:
-            request = json.loads(self.rfile.read(length).decode("utf-8"))
-            if not isinstance(request, dict):
-                raise ValueError("request body must be a JSON object")
-            match_input = request.get("match_input", request)
-            if not isinstance(match_input, dict):
-                raise ValueError("match_input must be a JSON object")
-            include_report = bool(request.get("include_report", False))
-            payload = analyze_match_input(match_input, include_report=include_report)
+            request = self._read_json_body()
+            if self.path == "/v1/verify":
+                audit_payload = request.get("audit_payload")
+                independent_judgement = request.get("independent_judgement")
+                if not isinstance(audit_payload, dict):
+                    raise ValueError("audit_payload must be a JSON object")
+                if not isinstance(independent_judgement, dict):
+                    raise ValueError("independent_judgement must be a JSON object")
+                payload = verify_independent_judgement(
+                    audit_payload=audit_payload,
+                    independent_judgement=independent_judgement,
+                )
+            else:
+                match_input = request.get("match_input", request)
+                if not isinstance(match_input, dict):
+                    raise ValueError("match_input must be a JSON object")
+                include_report = bool(request.get("include_report", False))
+                # /v1/analyze remains as a compatibility alias, but returns a material audit only.
+                if self.path == "/v1/analyze":
+                    payload = analyze_match_input(match_input, include_report=include_report)
+                else:
+                    payload = audit_match_input(match_input, include_report=include_report)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-            self._write_json(400, {"error": "invalid_match_input", "detail": str(exc)})
+            self._write_json(400, {"error": "invalid_request", "detail": str(exc)})
             return
         except Exception as exc:  # pragma: no cover - defensive service boundary
             self._write_json(500, {"error": "analysis_failed", "detail": str(exc)})
