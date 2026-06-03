@@ -13,6 +13,12 @@ from .checks import (
 from .config import HARD_DATA_SOURCE, is_legacy_hard_data_source, resolve_table_path
 from .context_modifiers import build_event_context_modifiers
 from .expected_interval import audit_opening_interval, expected_interval_from_table
+from .development_matrix import (
+    build_original_distribution_audit,
+    build_pre_odds_predicted_odds_audit,
+    build_strength_dynamic_audit,
+    build_three_direction_development_matrix,
+)
 from .fundamental_topics import build_fundamental_topic_audit
 from .integrated_structure import integrated_structure_judgement
 from .models import (
@@ -119,6 +125,11 @@ class FocasPipeline:
                 "Strength source requires review, but filled broad-strength fields passed strength_gate; continuing into skeleton and optimal-solution audits."
             )
         result.expected_opening_interval = expected_interval_from_table(strength=strength, estimate=estimate)
+        result.strength_dynamic_audit = build_strength_dynamic_audit(
+            strength=strength,
+            expected=result.expected_opening_interval,
+            estimate=estimate,
+        )
 
         pull_gate = natural_pull_gate(pulls)
         result.gates.append(pull_gate)
@@ -130,6 +141,9 @@ class FocasPipeline:
             match=match,
             strength=strength,
             pulls=pulls,
+        )
+        result.original_distribution_audit = build_original_distribution_audit(
+            distribution=result.original_distribution,
         )
         distribution_gate = original_distribution_gate(result.original_distribution)
         result.gates.append(distribution_gate)
@@ -287,6 +301,17 @@ class FocasPipeline:
             expected=result.interval_audit.expected,
             odds_coordinates=result.odds_coordinates,
             xlsx_path=self.table_path,
+        )
+        result.pre_odds_predicted_odds_audit = build_pre_odds_predicted_odds_audit(
+            formula_confirmed=False,
+        )
+        result.three_direction_development_matrix = build_three_direction_development_matrix(
+            strength_audit=result.strength_dynamic_audit,
+            distribution=result.original_distribution,
+            distribution_audit=result.original_distribution_audit,
+            pre_odds_audit=result.pre_odds_predicted_odds_audit,
+            opening_board_audit=result.opening_board_audit,
+            odds=odds,
         )
         result.market_pull_audit = build_market_pull_audit(
             pulls=pulls,

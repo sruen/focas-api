@@ -701,6 +701,57 @@ class ScenarioAuditResult:
 
 
 @dataclass
+class StrengthDynamicAudit:
+    home_grade: Optional[str] = None
+    away_grade: Optional[str] = None
+    allowed_grades: List[str] = field(default_factory=list)
+    static_gap: Optional[str] = None
+    dynamic_adjustment: Optional[str] = None
+    final_gap: Optional[str] = None
+    final_gap_value: Optional[float] = None
+    final_gap_label: Optional[str] = None
+    expected_low_side: Optional[str] = None
+    expected_interval: Optional[str] = None
+    interpretation: str = ""
+    ok: bool = False
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class OriginalDistributionAudit:
+    distribution_type: Optional[str] = None
+    home_pressure: Optional[str] = None
+    draw_pressure: Optional[str] = None
+    away_pressure: Optional[str] = None
+    first_eye_direction: Optional[str] = None
+    weak_confidence_directions: List[str] = field(default_factory=list)
+    dispersion_available: Dict[str, bool] = field(default_factory=dict)
+    scenario_constraints: List[str] = field(default_factory=list)
+    reasoning: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PreOddsPredictedOddsAudit:
+    calculation_status: str = "MISSING_FORMULA"
+    formula_source: str = "MANUAL_REVIEW_REQUIRED"
+    gpt_may_generate_exact_odds: bool = False
+    scenario_predictions: List[Dict[str, Any]] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class ThreeDirectionDevelopmentMatrixItem:
+    target_direction: str
+    strength_and_distribution_constraint: str = ""
+    optimal_development_logic: str = ""
+    predicted_odds: Dict[str, Any] = field(default_factory=dict)
+    actual_odds: Dict[str, str] = field(default_factory=dict)
+    adoption_status: str = "UNCONFIRMED"
+    conclusion: str = ""
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
 class PipelineResult:
     gates: List[GateResult]
     basic_context_status: str = "UNCONFIRMED"
@@ -741,6 +792,10 @@ class PipelineResult:
     optimal_solution_audit: Optional[OptimalSolutionAudit] = None
     future_adjustment_plan: Optional[FutureAdjustmentPlan] = None
     final_structure_judgement: Optional[FinalStructureJudgement] = None
+    strength_dynamic_audit: Optional[StrengthDynamicAudit] = None
+    original_distribution_audit: Optional[OriginalDistributionAudit] = None
+    pre_odds_predicted_odds_audit: Optional[PreOddsPredictedOddsAudit] = None
+    three_direction_development_matrix: List[ThreeDirectionDevelopmentMatrixItem] = field(default_factory=list)
     decision_status: str = "PASS"
     structural_lean: Optional[str] = None
     skeleton_scope_status: str = "HOME_AXIS_ONLY"

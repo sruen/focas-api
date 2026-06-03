@@ -134,6 +134,9 @@ components:
       type: object
       required:
         - name
+        - rank
+        - points
+        - recent_matches
       properties:
         name:
           type: string
@@ -145,9 +148,11 @@ components:
           description: Points context. For national teams or friendlies, do not leave empty; use FIFA ranking points or official group/table points.
         recent_matches:
           type: array
+          minItems: 5
           description: At least five pre-match results. Each item must start with W, D, or L so the engine can parse recent form.
           items:
             type: string
+            pattern: "^[WDL]\\s+.+"
         venue_adaptation:
           type: string
         attack_state:
@@ -347,12 +352,26 @@ components:
           type: string
         analysis_contract:
           $ref: "#/components/schemas/FreeformObject"
+        gpt_execution_gate:
+          $ref: "#/components/schemas/FreeformObject"
+          description: Mandatory GPT reading order and output gate. GPT must read final_structure_judgement last.
+        movement_contradiction_audit:
+          type: array
+          description: Direction-level contradictions between market pull, topic usage, and odds movement. GPT must explain every item before final judgement.
+          items:
+            $ref: "#/components/schemas/FreeformObject"
         match:
           $ref: "#/components/schemas/FreeformObject"
         status:
           $ref: "#/components/schemas/FreeformObject"
         expected_opening_interval:
           $ref: "#/components/schemas/FreeformObject"
+        strength_dynamic_audit:
+          $ref: "#/components/schemas/FreeformObject"
+          description: Original-book broad-strength grades, dynamic adjustment, final gap, low-side route and interval. GPT must not invent grades.
+        original_distribution_audit:
+          $ref: "#/components/schemas/FreeformObject"
+          description: Pre-odds original distribution type, three-direction pressures, first-eye direction and scenario constraints.
         system_routes:
           type: array
           items:
@@ -371,6 +390,14 @@ components:
         opening_board_audit:
           $ref: "#/components/schemas/FreeformObject"
           description: William / Ladbrokes opening home-draw-away board compared against the table interval.
+        pre_odds_predicted_odds_audit:
+          $ref: "#/components/schemas/FreeformObject"
+          description: Exact predicted development odds audit. GPT must not generate exact odds unless calculation_status is FORMULA_CONFIRMED.
+        three_direction_development_matrix:
+          type: array
+          description: Home/draw/away optimal development matrix with predicted odds gate, actual odds, adoption status and conclusion.
+          items:
+            $ref: "#/components/schemas/FreeformObject"
         fundamental_topic_audit:
           $ref: "#/components/schemas/FreeformObject"
           description: Structured pre-odds fundamental topics: form, H2H, venue, injuries, motivation, ranking and reputation.
