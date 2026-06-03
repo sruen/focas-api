@@ -127,6 +127,26 @@ class NarrativeAuditResult:
 
 
 @dataclass
+class FundamentalTopicItem:
+    category: str
+    direction: str
+    strength: str
+    visibility: str
+    score: float
+    facts: List[str] = field(default_factory=list)
+    reason: str = ""
+    institution_use_options: List[str] = field(default_factory=list)
+
+
+@dataclass
+class FundamentalTopicAudit:
+    topics: List[FundamentalTopicItem] = field(default_factory=list)
+    form_summary: str = ""
+    h2h_summary: str = ""
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
 class OriginalDistribution:
     distribution_type: str
     home_pressure: str
@@ -713,6 +733,7 @@ class PipelineResult:
     direction_judgements: List[DirectionJudgement] = field(default_factory=list)
     narrative_audit: Optional[NarrativeAuditResult] = None
     scenario_audit: Optional[ScenarioAuditResult] = None
+    fundamental_topic_audit: Optional[FundamentalTopicAudit] = None
     psychological_interval_audit: Optional[PsychologicalIntervalAudit] = None
     opening_board_audit: Optional[OpeningBoardAudit] = None
     market_pull_audit: Optional[MarketPullAudit] = None

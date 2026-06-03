@@ -371,6 +371,9 @@ components:
         opening_board_audit:
           $ref: "#/components/schemas/FreeformObject"
           description: William / Ladbrokes opening home-draw-away board compared against the table interval.
+        fundamental_topic_audit:
+          $ref: "#/components/schemas/FreeformObject"
+          description: Structured pre-odds fundamental topics: form, H2H, venue, injuries, motivation, ranking and reputation.
         market_pull_audit:
           $ref: "#/components/schemas/FreeformObject"
           description: Three-direction market pull percentages. Percentages are pull share, not match probability.

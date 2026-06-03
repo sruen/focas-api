@@ -13,6 +13,7 @@ from .checks import (
 from .config import HARD_DATA_SOURCE, is_legacy_hard_data_source, resolve_table_path
 from .context_modifiers import build_event_context_modifiers
 from .expected_interval import audit_opening_interval, expected_interval_from_table
+from .fundamental_topics import build_fundamental_topic_audit
 from .integrated_structure import integrated_structure_judgement
 from .models import (
     CompanyOdds,
@@ -276,6 +277,7 @@ class FocasPipeline:
             opening_readings=result.stage_9_analysis.opening_motive_chain,
             motive_readings=result.motive_readings,
         )
+        result.fundamental_topic_audit = build_fundamental_topic_audit(match)
         result.psychological_interval_audit = build_psychological_interval_audit(
             expected=result.interval_audit.expected,
             odds_coordinates=result.odds_coordinates,
@@ -290,11 +292,13 @@ class FocasPipeline:
             pulls=pulls,
             original_distribution=result.original_distribution,
             narrative_audit=result.narrative_audit,
+            fundamental_topic_audit=result.fundamental_topic_audit,
         )
         result.bookmaker_topic_usage_audit = build_bookmaker_topic_usage_audit(
             market_pull_audit=result.market_pull_audit,
             narrative_audit=result.narrative_audit,
             opening_board_audit=result.opening_board_audit,
+            fundamental_topic_audit=result.fundamental_topic_audit,
         )
         result.optimal_solution_audit = build_optimal_solution_audit(
             expected=result.interval_audit.expected,

@@ -111,6 +111,9 @@ def analyze_match_input(
         "opening_board_audit": asdict(result.opening_board_audit)
         if result.opening_board_audit
         else None,
+        "fundamental_topic_audit": asdict(result.fundamental_topic_audit)
+        if result.fundamental_topic_audit
+        else None,
         "market_pull_audit": asdict(result.market_pull_audit)
         if result.market_pull_audit
         else None,

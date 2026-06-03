@@ -314,6 +314,26 @@ def _opening_board_lines(result: PipelineResult) -> list[str]:
     return lines
 
 
+def _fundamental_topic_lines(result: PipelineResult) -> list[str]:
+    audit = result.fundamental_topic_audit
+    if not audit:
+        return ["- fundamental_topic_audit not generated."]
+    lines = [
+        f"- form_summary: {_safe(audit.form_summary)}",
+        f"- h2h_summary: {_safe(audit.h2h_summary)}",
+        "| category | direction | strength | visibility | score | facts | usage_options | reason |",
+        "|---|---|---|---|---:|---|---|---|",
+    ]
+    for item in audit.topics:
+        lines.append(
+            f"| {item.category} | {item.direction} | {item.strength} | {item.visibility} | "
+            f"{item.score:.2f} | {_join(item.facts)} | {_join(item.institution_use_options)} | {item.reason} |"
+        )
+    if audit.notes:
+        lines.extend([f"- {note}" for note in audit.notes])
+    return lines
+
+
 def _market_pull_lines(result: PipelineResult) -> list[str]:
     audit = result.market_pull_audit
     if not audit:
@@ -567,6 +587,9 @@ def render_frontend_report(
         *_opening_board_lines(result),
         "",
         "## 11. 三项市场拉力与题材",
+        "### Fundamental topic audit",
+        *_fundamental_topic_lines(result),
+        "",
         *_market_pull_lines(result),
         "",
         "### 机构题材使用 / 未使用审计",

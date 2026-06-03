@@ -9,6 +9,7 @@ from .models import (
     DirectionPsychologicalInterval,
     ExpectedOpeningInterval,
     FinalStructureJudgement,
+    FundamentalTopicAudit,
     FutureAdjustmentItem,
     FutureAdjustmentPlan,
     MarketPullAudit,
@@ -128,6 +129,25 @@ def _topic_map(narrative_audit: NarrativeAuditResult | None) -> dict[str, list[s
         direction: list(getattr(item, "available_topics", []))
         for direction, item in _narrative_items(narrative_audit).items()
     }
+
+
+def _fundamental_topic_map(fundamental_topic_audit: FundamentalTopicAudit | None) -> dict[str, list[str]]:
+    if fundamental_topic_audit is None:
+        return {}
+    topics: dict[str, list[str]] = {}
+    for item in fundamental_topic_audit.topics:
+        label = f"{item.category}:{item.strength}:{item.reason}"
+        topics.setdefault(item.direction, []).append(label)
+    return topics
+
+
+def _fundamental_score_map(fundamental_topic_audit: FundamentalTopicAudit | None) -> dict[str, float]:
+    if fundamental_topic_audit is None:
+        return {}
+    scores: dict[str, float] = {}
+    for item in fundamental_topic_audit.topics:
+        scores[item.direction] = scores.get(item.direction, 0.0) + item.score
+    return scores
 
 
 def _percent_label(percent: float) -> str:
@@ -342,15 +362,19 @@ def build_market_pull_audit(
     pulls: list[NaturalPull],
     original_distribution: OriginalDistribution | None,
     narrative_audit: NarrativeAuditResult | None,
+    fundamental_topic_audit: FundamentalTopicAudit | None = None,
 ) -> MarketPullAudit:
     pmap = _pull_map(pulls)
     topics = _topic_map(narrative_audit)
+    fundamental_topics = _fundamental_topic_map(fundamental_topic_audit)
+    fundamental_scores = _fundamental_score_map(fundamental_topic_audit)
     pressures = pressure_by_direction(original_distribution)
     raw_scores: dict[str, float] = {}
 
     for direction in DIRECTIONS:
         pull = pmap.get(direction)
         score = STRENGTH_SCORE.get(pull.strength if pull else None, 0.6)
+        score += min(fundamental_scores.get(direction, 0.0), 1.35) * 0.42
         pressure = pressures.get(direction)
         if pressure == "强":
             score += 0.65
@@ -362,6 +386,8 @@ def build_market_pull_audit(
             score += 0.20
         if topics.get(direction):
             score += min(len(topics[direction]), 3) * 0.08
+        if fundamental_topics.get(direction):
+            score += min(len(fundamental_topics[direction]), 4) * 0.06
         raw_scores[direction] = max(score, 0.05)
 
     total = sum(raw_scores.values()) or 1.0
@@ -375,7 +401,11 @@ def build_market_pull_audit(
     for direction in DIRECTIONS:
         pull = pmap.get(direction)
         percent = raw_scores[direction] / total * 100
-        source_topics = topics.get(direction) or ([pull.facts] if pull and pull.facts else [])
+        source_topics = []
+        source_topics.extend(fundamental_topics.get(direction, []))
+        source_topics.extend(topics.get(direction, []))
+        if not source_topics and pull and pull.facts:
+            source_topics.append(pull.facts)
         dispersion = bool(
             original_distribution
             and original_distribution.dispersion_available.get(direction)
@@ -403,8 +433,10 @@ def build_bookmaker_topic_usage_audit(
     market_pull_audit: MarketPullAudit | None,
     narrative_audit: NarrativeAuditResult | None,
     opening_board_audit: OpeningBoardAudit | None,
+    fundamental_topic_audit: FundamentalTopicAudit | None = None,
 ) -> BookmakerTopicUsageAudit:
     topics = _topic_map(narrative_audit)
+    fundamental_topics = _fundamental_topic_map(fundamental_topic_audit)
     nitems = _narrative_items(narrative_audit)
     audit = BookmakerTopicUsageAudit(notes=[
         "有题材不等于机构使用；必须由初赔落点或变赔动作证明。",
@@ -435,7 +467,9 @@ def build_bookmaker_topic_usage_audit(
                 used_evidence.append(f"{item.company} 后续抬高{direction}")
                 usage_modes.append("阻挡/降热")
 
-        available_topics = topics.get(direction, [])
+        available_topics = []
+        available_topics.extend(fundamental_topics.get(direction, []))
+        available_topics.extend(topics.get(direction, []))
         institution_used = bool(used_evidence)
         unused_topics = [] if institution_used else available_topics
         audit.direction_usages.append(
