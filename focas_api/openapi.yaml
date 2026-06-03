@@ -5,7 +5,9 @@ info:
   description: >
     Runs the FOCAS evidence pipeline. Odds values are never numerically
     converted. Return rate is used only to route each institution snapshot
-    to the matching 89-96 skeleton sheet.
+    to the matching 89-96 skeleton sheet. The response includes three-direction
+    psychological interval audit, opening board audit, topic usage audit, and
+    optimal-solution / better-solution structure.
 servers:
   - url: https://focas-api.onrender.com
 
@@ -17,7 +19,8 @@ paths:
       description: >
         Submit normalized match facts, market narratives, and institution odds.
         Always call this operation before explaining institution motives or
-        giving a structural direction. Do not override PASS or REVIEW_REQUIRED.
+        giving a structural direction. GPT must not invent skeleton intervals;
+        it must use the returned audit fields.
       x-openai-isConsequential: false
       security:
         - FocasApiKey: []
@@ -343,57 +346,77 @@ components:
         engine_version:
           type: string
         analysis_contract:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         match:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         status:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         expected_opening_interval:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         system_routes:
           type: array
           items:
-            type: object
-            properties: {}
-            additionalProperties: true
+            $ref: "#/components/schemas/FreeformObject"
+        skeleton_system_audit:
+          type: array
+          items:
+            $ref: "#/components/schemas/FreeformObject"
         opening_skeleton_audits:
           type: array
           items:
-            type: object
-            properties: {}
-            additionalProperties: true
+            $ref: "#/components/schemas/FreeformObject"
+        psychological_interval_audit:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Three-direction theoretical psychological intervals read from the detected 89-96 system sheets.
+        opening_board_audit:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: William / Ladbrokes opening home-draw-away board compared against the table interval.
+        market_pull_audit:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Three-direction market pull percentages. Percentages are pull share, not match probability.
+        optimal_solution_audit:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Counterfactual optimal-solution simulation for home, draw, and away scenarios.
+        bookmaker_topic_usage_audit:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Audit of available topics, used topics, unused topics, and utilization mode.
+        future_adjustment_plan:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Expected later bookmaker adjustment path if an optimal or better solution exists.
+        final_structure_judgement:
+          allOf:
+            - $ref: "#/components/schemas/FreeformObject"
+          description: Final structural status: EXECUTE, LEAN, BETTER_SOLUTION_ONLY, NO_OPTIMAL_SOLUTION, or NO_BET_STRUCTURE.
         opening_motive_chain:
           type: array
           items:
-            type: object
-            properties: {}
-            additionalProperties: true
+            $ref: "#/components/schemas/FreeformObject"
         narrative_audit:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         scenario_audit:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         opening_interval_audit:
-          type: object
-          properties: {}
-          additionalProperties: true
+          $ref: "#/components/schemas/FreeformObject"
         notes:
           type: array
           items:
             type: string
         report_markdown:
           type: string
+      additionalProperties: true
+
+    FreeformObject:
+      type: object
+      properties:
+        schema_note:
+          type: string
+          description: Optional placeholder; response objects may include additional FOCAS fields.
       additionalProperties: true
 
     ErrorResponse:

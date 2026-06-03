@@ -72,7 +72,11 @@ def analyze_match_input(
             "institution_motive_requires_confirmed_skeleton_audit": True,
             "analysis_mode": "FINAL_PASS_GATE_DISABLED",
             "lean_output_allowed": True,
-            "pass_must_not_be_overridden_by_gpt": True,
+            "gpt_must_follow_final_structure_judgement": True,
+            "legacy_pass_gate_replaced_by_optimal_solution_layer": True,
+            "optimal_solution_layer_enabled": True,
+            "market_pull_percent_means": "market_psychological_pull_share_not_match_probability",
+            "three_direction_board_audit_enabled": True,
         },
         "match": {
             "home_team": match.home_team,
@@ -98,7 +102,29 @@ def analyze_match_input(
         if result.expected_opening_interval
         else None,
         "system_routes": _system_routes(result),
+        "skeleton_system_audit": _system_routes(result),
         "opening_skeleton_audits": _opening_audits(result),
+        "psychological_interval_audit": asdict(result.psychological_interval_audit)
+        if result.psychological_interval_audit
+        else None,
+        "opening_board_audit": asdict(result.opening_board_audit)
+        if result.opening_board_audit
+        else None,
+        "market_pull_audit": asdict(result.market_pull_audit)
+        if result.market_pull_audit
+        else None,
+        "optimal_solution_audit": asdict(result.optimal_solution_audit)
+        if result.optimal_solution_audit
+        else None,
+        "bookmaker_topic_usage_audit": asdict(result.bookmaker_topic_usage_audit)
+        if result.bookmaker_topic_usage_audit
+        else None,
+        "future_adjustment_plan": asdict(result.future_adjustment_plan)
+        if result.future_adjustment_plan
+        else None,
+        "final_structure_judgement": asdict(result.final_structure_judgement)
+        if result.final_structure_judgement
+        else None,
         "opening_motive_chain": _opening_motives(result),
         "narrative_audit": asdict(result.narrative_audit) if result.narrative_audit else None,
         "scenario_audit": asdict(result.scenario_audit) if result.scenario_audit else None,

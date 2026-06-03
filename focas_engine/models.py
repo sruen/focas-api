@@ -352,6 +352,149 @@ class IntervalAuditResult:
 
 
 @dataclass
+class DirectionPsychologicalInterval:
+    direction: str
+    system: str
+    interval_id: Optional[int]
+    expected_water_band: Optional[str]
+    odds_min: Optional[float]
+    odds_max: Optional[float]
+    precision: str
+    profile_status: str
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PsychologicalIntervalAudit:
+    expected_interval_id: Optional[int]
+    expected_water_band: Optional[str]
+    expected_low_side: str
+    systems: List[str] = field(default_factory=list)
+    direction_intervals: List[DirectionPsychologicalInterval] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class OpeningBoardDirectionAudit:
+    company: str
+    system: str
+    direction: str
+    opening_odds: float
+    current_odds: float
+    action: str
+    expected_min: Optional[float]
+    expected_max: Optional[float]
+    range_deviation: Optional[float]
+    position_status: str
+    semantic: str
+    precision: str
+    interval_id: Optional[int]
+    water_band: Optional[str]
+
+
+@dataclass
+class OpeningBoardCompanyAudit:
+    company: str
+    system: str
+    return_rate: float
+    direction_audits: List[OpeningBoardDirectionAudit] = field(default_factory=list)
+
+
+@dataclass
+class OpeningBoardAudit:
+    company_audits: List[OpeningBoardCompanyAudit] = field(default_factory=list)
+    ok: bool = False
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class MarketPullDirectionAudit:
+    direction: str
+    pull_strength: str
+    pull_score: float
+    pull_percent: float
+    pull_label: str
+    topic_sources: List[str] = field(default_factory=list)
+    dispersion_available: bool = False
+    first_eye_direction: bool = False
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class MarketPullAudit:
+    directions: List[MarketPullDirectionAudit] = field(default_factory=list)
+    distribution_type: str = "UNCONFIRMED"
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class BookmakerTopicUsageDirection:
+    direction: str
+    available_topics: List[str] = field(default_factory=list)
+    original_pull_percent: Optional[float] = None
+    original_pull_label: str = "UNCONFIRMED"
+    institution_use_status: str = "UNCONFIRMED"
+    usage_mode: str = "UNCONFIRMED"
+    used_evidence: List[str] = field(default_factory=list)
+    unused_topics: List[str] = field(default_factory=list)
+    unused_reason: Optional[str] = None
+
+
+@dataclass
+class BookmakerTopicUsageAudit:
+    direction_usages: List[BookmakerTopicUsageDirection] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class OptimalScenario:
+    target_direction: str
+    required_topic_usage: List[str] = field(default_factory=list)
+    supporting_directions: List[str] = field(default_factory=list)
+    expected_interval_plan: Dict[str, str] = field(default_factory=dict)
+    opening_fit: str = "UNCONFIRMED"
+    movement_fit: str = "UNCONFIRMED"
+    explanation_score: float = 0.0
+    contradictions: List[str] = field(default_factory=list)
+    evidence: List[str] = field(default_factory=list)
+    status: str = "UNCONFIRMED"
+
+
+@dataclass
+class OptimalSolutionAudit:
+    scenarios: List[OptimalScenario] = field(default_factory=list)
+    solution_status: str = "UNCONFIRMED"
+    selected_direction: Optional[str] = None
+    better_solution_required: bool = False
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class FutureAdjustmentItem:
+    direction: str
+    recommended_action: str
+    target_psychological_interval: str
+    purpose: str
+    not_expected_to_hit_reason: Optional[str] = None
+
+
+@dataclass
+class FutureAdjustmentPlan:
+    target_direction: Optional[str]
+    items: List[FutureAdjustmentItem] = field(default_factory=list)
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class FinalStructureJudgement:
+    status: str
+    direction: Optional[str]
+    reason: str
+    confidence: str
+    warnings: List[str] = field(default_factory=list)
+
+
+@dataclass
 class EventContextModifiers:
     league_context_modifier: str
     event_type_modifier: str
@@ -570,6 +713,13 @@ class PipelineResult:
     direction_judgements: List[DirectionJudgement] = field(default_factory=list)
     narrative_audit: Optional[NarrativeAuditResult] = None
     scenario_audit: Optional[ScenarioAuditResult] = None
+    psychological_interval_audit: Optional[PsychologicalIntervalAudit] = None
+    opening_board_audit: Optional[OpeningBoardAudit] = None
+    market_pull_audit: Optional[MarketPullAudit] = None
+    bookmaker_topic_usage_audit: Optional[BookmakerTopicUsageAudit] = None
+    optimal_solution_audit: Optional[OptimalSolutionAudit] = None
+    future_adjustment_plan: Optional[FutureAdjustmentPlan] = None
+    final_structure_judgement: Optional[FinalStructureJudgement] = None
     decision_status: str = "PASS"
     structural_lean: Optional[str] = None
     skeleton_scope_status: str = "HOME_AXIS_ONLY"

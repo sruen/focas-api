@@ -32,6 +32,15 @@ from .original_modes import fill_original_book_mode
 from .p1_core import build_p1_core
 from .relative_selection import select_relative_mainline
 from .scenario_audit import build_scenario_audit
+from .solution_audit import (
+    build_bookmaker_topic_usage_audit,
+    build_final_structure_judgement,
+    build_future_adjustment_plan,
+    build_market_pull_audit,
+    build_opening_board_audit,
+    build_optimal_solution_audit,
+    build_psychological_interval_audit,
+)
 from .stage9 import describe_odds_face, odds_face_and_company_motive_analysis
 from .strength import fill_strength_context
 from .strength import STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED
@@ -264,6 +273,39 @@ class FocasPipeline:
             opening_readings=result.stage_9_analysis.opening_motive_chain,
             motive_readings=result.motive_readings,
         )
+        result.psychological_interval_audit = build_psychological_interval_audit(
+            expected=result.interval_audit.expected,
+            odds_coordinates=result.odds_coordinates,
+            xlsx_path=self.table_path,
+        )
+        result.opening_board_audit = build_opening_board_audit(
+            expected=result.interval_audit.expected,
+            odds_coordinates=result.odds_coordinates,
+            xlsx_path=self.table_path,
+        )
+        result.market_pull_audit = build_market_pull_audit(
+            pulls=pulls,
+            original_distribution=result.original_distribution,
+            narrative_audit=result.narrative_audit,
+        )
+        result.bookmaker_topic_usage_audit = build_bookmaker_topic_usage_audit(
+            market_pull_audit=result.market_pull_audit,
+            narrative_audit=result.narrative_audit,
+            opening_board_audit=result.opening_board_audit,
+        )
+        result.optimal_solution_audit = build_optimal_solution_audit(
+            expected=result.interval_audit.expected,
+            market_pull_audit=result.market_pull_audit,
+            opening_board_audit=result.opening_board_audit,
+            bookmaker_topic_usage_audit=result.bookmaker_topic_usage_audit,
+        )
+        result.future_adjustment_plan = build_future_adjustment_plan(
+            optimal_solution_audit=result.optimal_solution_audit,
+            opening_board_audit=result.opening_board_audit,
+        )
+        result.final_structure_judgement = build_final_structure_judgement(
+            optimal_solution_audit=result.optimal_solution_audit,
+        )
 
         # Stage 10: synthesize the full reasoning chain. Summary statuses are last, not first.
         result.integrated_structure = integrated_structure_judgement(
@@ -333,6 +375,25 @@ class FocasPipeline:
             result.notes.append("No selectable structural lean was produced.")
         if decision_warnings:
             result.notes.append("Decision warnings: " + "; ".join(decision_warnings))
+        if result.final_structure_judgement:
+            judgement = result.final_structure_judgement
+            result.notes.append(
+                f"Optimal solution layer: {judgement.status}"
+                + (f"｜direction={judgement.direction}" if judgement.direction else "")
+                + f"｜reason={judgement.reason}"
+            )
+            if judgement.status == "EXECUTE" and judgement.direction:
+                result.final_direction = judgement.direction
+                result.decision_status = "EXECUTE"
+                result.mainline_output_status = "ALLOWED"
+            elif judgement.status == "BETTER_SOLUTION_ONLY" and judgement.direction:
+                result.final_direction = judgement.direction
+                result.decision_status = "BETTER_SOLUTION_ONLY"
+                result.mainline_output_status = "ALLOWED_WITH_CAUTION"
+            elif judgement.status in {"NO_OPTIMAL_SOLUTION", "NO_BET_STRUCTURE"}:
+                result.final_direction = "NO_BET"
+                result.decision_status = judgement.status
+                result.mainline_output_status = "NO_BET_STRUCTURE"
         result.report_mode = "FULL_REPORT"
         result.scenario_audit = build_scenario_audit(result=result)
         return result

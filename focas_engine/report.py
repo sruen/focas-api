@@ -275,6 +275,120 @@ def _narrative_audit_lines(result: PipelineResult) -> list[str]:
     return lines
 
 
+def _psychological_interval_lines(result: PipelineResult) -> list[str]:
+    audit = result.psychological_interval_audit
+    if not audit:
+        return ["- 三项原始心理区间审计未生成。"]
+    lines = [
+        f"- 理论低赔侧：{audit.expected_low_side}｜理论区间：{_safe(audit.expected_interval_id)}区｜水位：{_safe(audit.expected_water_band)}",
+        f"- 读取体系：{_join(audit.systems)}",
+        "- 说明：主胜为骨架精确轴；平局和客胜若来自档口参考，不得冒充精确。",
+        "",
+        "| 体系 | 方向 | 区间 | 水位 | 理论赔率范围 | 精度 | 状态 |",
+        "|---|---|---:|---|---|---|---|",
+    ]
+    for item in audit.direction_intervals:
+        lines.append(
+            f"| {item.system} | {item.direction} | {_safe(item.interval_id)} | {_safe(item.expected_water_band)} | "
+            f"{_range_label(item.odds_min, item.odds_max)} | {item.precision} | {item.profile_status} |"
+        )
+    return lines
+
+
+def _opening_board_lines(result: PipelineResult) -> list[str]:
+    audit = result.opening_board_audit
+    if not audit:
+        return ["- 三项初赔落点审计未生成。"]
+    lines = [
+        f"- 三项初赔对照完成：{'是' if audit.ok else '否'}",
+        "| 公司 | 体系 | 方向 | 初赔 | 最新 | 动作 | 理论范围 | 偏离 | 落点 | 功能语义 | 精度 |",
+        "|---|---|---|---:|---:|---|---|---:|---|---|---|",
+    ]
+    for company in audit.company_audits:
+        for item in company.direction_audits:
+            lines.append(
+                f"| {company.company} | {company.system} | {item.direction} | {item.opening_odds:.3f} | "
+                f"{item.current_odds:.3f} | {item.action} | {_range_label(item.expected_min, item.expected_max)} | "
+                f"{_deviation_label(item.range_deviation)} | {item.position_status} | {item.semantic} | {item.precision} |"
+            )
+    return lines
+
+
+def _market_pull_lines(result: PipelineResult) -> list[str]:
+    audit = result.market_pull_audit
+    if not audit:
+        return ["- 三项市场拉力审计未生成。"]
+    lines = [
+        f"- 原始分布类型：{audit.distribution_type}",
+        "- 百分比是市场心理拉力占比，不是赛果概率。",
+        "| 方向 | 拉力强度 | 拉力分 | 拉力占比 | 强弱 | 可分散 | 第一眼 | 题材来源 |",
+        "|---|---|---:|---:|---|---|---|---|",
+    ]
+    for item in audit.directions:
+        lines.append(
+            f"| {item.direction} | {item.pull_strength} | {item.pull_score:.3f} | {item.pull_percent:.2f}% | "
+            f"{item.pull_label} | {'是' if item.dispersion_available else '否'} | "
+            f"{'是' if item.first_eye_direction else '否'} | {_join(item.topic_sources)} |"
+        )
+    return lines
+
+
+def _topic_usage_lines(result: PipelineResult) -> list[str]:
+    audit = result.bookmaker_topic_usage_audit
+    if not audit:
+        return ["- 机构题材使用审计未生成。"]
+    lines = [
+        "- 规则：有题材不等于机构使用；必须由初赔落点或变赔动作证明。",
+        "| 方向 | 可用题材 | 拉力占比 | 机构使用 | 使用方式 | 使用证据 | 未用题材 | 未用原因 |",
+        "|---|---|---:|---|---|---|---|---|",
+    ]
+    for item in audit.direction_usages:
+        percent = f"{item.original_pull_percent:.2f}%" if item.original_pull_percent is not None else "未确认"
+        lines.append(
+            f"| {item.direction} | {_join(item.available_topics)} | {percent} | {item.institution_use_status} | "
+            f"{item.usage_mode} | {_join(item.used_evidence)} | {_join(item.unused_topics)} | {_safe(item.unused_reason, '-')} |"
+        )
+    return lines
+
+
+def _optimal_solution_lines(result: PipelineResult) -> list[str]:
+    audit = result.optimal_solution_audit
+    if not audit:
+        return ["- 三项最优解审计未生成。"]
+    lines = [
+        f"- 最优解状态：{audit.solution_status}",
+        f"- 选择方向：{_safe(audit.selected_direction)}｜是否只能更优解：{'是' if audit.better_solution_required else '否'}",
+        "| 情景 | 分流方向 | 开盘符合 | 变赔符合 | 解释分 | 状态 | 证据 | 反证 |",
+        "|---|---|---|---|---:|---|---|---|",
+    ]
+    for item in audit.scenarios:
+        lines.append(
+            f"| {item.target_direction} | {_join(item.supporting_directions)} | {item.opening_fit} | "
+            f"{item.movement_fit} | {item.explanation_score:.3f} | {item.status} | "
+            f"{_join(item.evidence)} | {_join(item.contradictions)} |"
+        )
+    return lines
+
+
+def _future_adjustment_lines(result: PipelineResult) -> list[str]:
+    plan = result.future_adjustment_plan
+    if not plan:
+        return ["- 后续做盘方向未生成。"]
+    lines = [
+        f"- 目标方向：{_safe(plan.target_direction)}",
+        "| 方向 | 后续动作 | 目标心理区间 | 目的 | 打不出理由 |",
+        "|---|---|---|---|---|",
+    ]
+    for item in plan.items:
+        lines.append(
+            f"| {item.direction} | {item.recommended_action} | {item.target_psychological_interval} | "
+            f"{item.purpose} | {_safe(item.not_expected_to_hit_reason, '-')} |"
+        )
+    if plan.notes:
+        lines.extend([f"- {note}" for note in plan.notes])
+    return lines
+
+
 def _scenario_audit_lines(result: PipelineResult) -> list[str]:
     audit = result.scenario_audit
     if not audit:
@@ -446,7 +560,19 @@ def render_frontend_report(
         "### 初赔合理性审计：理论骨架 vs 机构实际初赔",
         *_opening_skeleton_audit_lines(result),
         "",
-        "## 11. 当前赔面对胜 / 平 / 负是否有利",
+        "### 三项原始心理区间赔率",
+        *_psychological_interval_lines(result),
+        "",
+        "### 三项初赔落点对照",
+        *_opening_board_lines(result),
+        "",
+        "## 11. 三项市场拉力与题材",
+        *_market_pull_lines(result),
+        "",
+        "### 机构题材使用 / 未使用审计",
+        *_topic_usage_lines(result),
+        "",
+        "## 12. 当前赔面对胜 / 平 / 负是否有利",
         *_motive_lines(result),
         "",
         "### 综合结构正文",
@@ -455,15 +581,21 @@ def render_frontend_report(
         "### 三项题材审计",
         *_narrative_audit_lines(result),
         "",
+        "## 13. 三项最优解 / 更优解",
+        *_optimal_solution_lines(result),
+        "",
+        "### 后续机构做盘方向",
+        *_future_adjustment_lines(result),
+        "",
         "### 主胜 / 平局 / 客胜三情景反推",
         *_scenario_audit_lines(result),
         "",
-        "## 12. 不利方向排除",
+        "## 14. 不利方向排除",
         f"- 明确不利排除方向：{_join(integrated.adverse_excluded_directions)}",
         f"- 支持链未闭合但不能排除的方向：{_join(integrated.unconfirmed_directions)}",
         "- 只有完整证据链形成的“不利”才能排除方向。支持不足不等于不利。",
         "",
-        "## 13. 第二阶段相对主线选择",
+        "## 15. 第二阶段相对主线选择",
         *(
             [
                 f"- 明确不利排除方向：{_join(relative.adverse_exclusions)}",
@@ -476,12 +608,13 @@ def render_frontend_report(
             else ["- 已有两个方向被完整不利证据链排除，无需进入第二阶段相对比较。"]
         ),
         "",
-        "## 14. 最终结构方向",
+        "## 16. 最终结构方向",
         f"- 决策状态：{result.decision_status}",
         f"- 最终结构方向：{result.final_direction}",
         f"- 仅供观察的结构倾向：{_safe(result.structural_lean)}",
+        f"- 最优解最终判断：{_safe(getattr(result.final_structure_judgement, 'status', None))}｜方向={_safe(getattr(result.final_structure_judgement, 'direction', None))}｜理由={_safe(getattr(result.final_structure_judgement, 'reason', None))}",
         "",
-        "## 15. 结论",
+        "## 17. 结论",
         (
             f"- 当前赔率结构层正式输出为 {result.final_direction}。"
             if result.final_direction != "PASS"
