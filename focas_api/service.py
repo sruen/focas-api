@@ -84,6 +84,8 @@ def analyze_match_input(
             "stop_reason": result.stop_reason,
             "report_mode": result.report_mode,
             "decision_status": result.decision_status,
+            "mainline_output_status": result.mainline_output_status,
+            "odds_analysis_status": result.odds_analysis_status,
             "final_direction": result.final_direction,
             "structural_lean": result.structural_lean,
             "table_read_confirmed": result.table_read_confirmed,

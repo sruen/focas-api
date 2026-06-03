@@ -303,26 +303,45 @@ class FocasPipeline:
                 "相对弱不等于不利排除。"
             )
 
-        blockers: list[str] = []
+        hard_blockers: list[str] = []
+        soft_warnings: list[str] = []
         if result.final_direction is None:
-            blockers.append("no complete directional evidence chain")
+            if result.structural_lean:
+                soft_warnings.append("no complete two-adverse directional chain; using relative structural lean")
+            else:
+                hard_blockers.append("no complete directional evidence chain")
         if result.expected_interval_status != "CONFIRMED":
-            blockers.append("theoretical skeleton interval requires review")
+            hard_blockers.append("theoretical skeleton interval requires review")
         if result.skeleton_scope_status != "HOME_AXIS_PRECISE":
-            blockers.append("skeleton workbook is home-axis precise only for this odds shape")
+            hard_blockers.append("skeleton workbook is home-axis precise only for this odds shape")
         if result.narrative_audit.review_required:
-            blockers.append("source-level three-direction narrative audit is incomplete")
+            soft_warnings.append("source-level three-direction narrative audit is incomplete")
 
-        if blockers:
+        if hard_blockers:
             if result.final_direction:
                 result.structural_lean = result.final_direction
             result.final_direction = "PASS"
             result.decision_status = "OBSERVE" if result.structural_lean else "PASS"
             result.mainline_output_status = "PASS"
-            result.notes.append("Formal PASS: " + "; ".join(blockers))
+            result.notes.append("Formal PASS: " + "; ".join(hard_blockers))
         else:
-            result.decision_status = "EXECUTE"
-            result.mainline_output_status = "ALLOWED"
+            if result.final_direction:
+                result.decision_status = "EXECUTE"
+                result.mainline_output_status = "ALLOWED"
+            elif result.structural_lean:
+                result.final_direction = result.structural_lean
+                result.decision_status = "LEAN"
+                result.mainline_output_status = "ALLOWED_WITH_CAUTION"
+                result.notes.append(
+                    "Structural LEAN: relative mainline selected after skeleton confirmation; "
+                    "not upgraded to EXECUTE because the full two-adverse evidence chain is not closed."
+                )
+            else:
+                result.final_direction = "PASS"
+                result.decision_status = "PASS"
+                result.mainline_output_status = "PASS"
+            if soft_warnings:
+                result.notes.append("Review warnings: " + "; ".join(soft_warnings))
         result.report_mode = "FULL_REPORT"
         result.scenario_audit = build_scenario_audit(result=result)
         return result

@@ -3,20 +3,21 @@ info:
   title: FOCAS Match Analysis API
   version: 1.1.5
   description: >
-    Runs the FOCAS evidence pipeline. Odds values are never numerically converted.
-    Return rate is used only to route each institution snapshot to the matching
-    89-96 skeleton sheet.
+    Runs the FOCAS evidence pipeline. Odds values are never numerically
+    converted. Return rate is used only to route each institution snapshot
+    to the matching 89-96 skeleton sheet.
 servers:
-  - url: https://YOUR_DOMAIN
+  - url: https://focas-api.onrender.com
+
 paths:
   /v1/analyze:
     post:
-      operationId: analyzeFocasMatch
-      summary: Analyze a football match with the FOCAS evidence pipeline
+      operationId: analyzeFocasMatchV4
+      summary: Analyze a football match with FOCAS
       description: >
-        Submit normalized match facts and institution odds. Always call this
-        operation before explaining institution motives or giving a structural
-        direction. Do not override PASS or REVIEW_REQUIRED.
+        Submit normalized match facts, market narratives, and institution odds.
+        Always call this operation before explaining institution motives or
+        giving a structural direction. Do not override PASS or REVIEW_REQUIRED.
       x-openai-isConsequential: false
       security:
         - FocasApiKey: []
@@ -25,122 +26,381 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [match_input]
-              properties:
-                include_report:
-                  type: boolean
-                  default: false
-                  description: Return the long Markdown report only when the user requests it.
-                match_input:
-                  $ref: "#/components/schemas/MatchInput"
+              $ref: "#/components/schemas/FocasAnalyzeRequest"
       responses:
         "200":
           description: FOCAS structured evidence response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/FocasAnalyzeResponse"
         "400":
           description: Invalid match input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     FocasApiKey:
       type: http
       scheme: bearer
   schemas:
-    MatchInput:
+    FocasAnalyzeRequest:
       type: object
-      required: [match, home_context, away_context, h2h, strength, natural_pulls, odds]
-      additionalProperties: true
+      required:
+        - match
+        - home_context
+        - away_context
+        - h2h
+        - strength
+        - natural_pulls
+        - odds
       properties:
+        include_report:
+          type: boolean
+          default: false
+          description: Return the long Markdown report only when the user requests it.
         match:
-          type: object
-          required: [home_team, away_team]
-          additionalProperties: true
-          properties:
-            home_team: {type: string}
-            away_team: {type: string}
-            competition: {type: string}
-            kickoff_time: {type: string}
-            stage: {type: string}
-            neutral_venue: {type: boolean}
-            single_leg: {type: boolean}
-            match_type: {type: string}
-            extra_time_or_penalties: {type: string}
-            real_home_away: {type: boolean}
-            attention_level: {type: string}
-            league_for_table: {type: string}
+          $ref: "#/components/schemas/Match"
         home_context:
           $ref: "#/components/schemas/TeamContext"
         away_context:
           $ref: "#/components/schemas/TeamContext"
         h2h:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/H2HContext"
         strength:
-          type: object
-          additionalProperties: true
-          properties:
-            home_grade: {type: string}
-            away_grade: {type: string}
-            static_gap: {type: string}
-            dynamic_adjustment: {type: string}
-            final_gap: {type: string}
+          $ref: "#/components/schemas/StrengthContext"
         natural_pulls:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            $ref: "#/components/schemas/NaturalPull"
         narrative_materials:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            $ref: "#/components/schemas/NarrativeMaterial"
         original_book_mode:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/OriginalBookMode"
         odds:
           type: array
           minItems: 3
           items:
             $ref: "#/components/schemas/CompanyOdds"
+      additionalProperties: true
+
+    Match:
+      type: object
+      required:
+        - home_team
+        - away_team
+      properties:
+        home_team:
+          type: string
+        away_team:
+          type: string
+        competition:
+          type: string
+        kickoff_time:
+          type: string
+        stage:
+          type: string
+        neutral_venue:
+          type: boolean
+        single_leg:
+          type: boolean
+        match_type:
+          type: string
+        extra_time_or_penalties:
+          type: string
+        real_home_away:
+          type: boolean
+        attention_level:
+          type: string
+        league_for_table:
+          type: string
+      additionalProperties: true
+
     TeamContext:
       type: object
-      additionalProperties: true
+      required:
+        - name
       properties:
-        name: {type: string}
-        rank: {type: string}
-        points: {type: string}
+        name:
+          type: string
+        rank:
+          type: string
+          description: Ranking context. For national teams, use FIFA ranking, for example "FIFA第20，1620.81分".
+        points:
+          type: string
+          description: Points context. For national teams or friendlies, do not leave empty; use FIFA ranking points or official group/table points.
         recent_matches:
           type: array
-          items: {type: string}
-        venue_adaptation: {type: string}
-        attack_state: {type: string}
-        defense_state: {type: string}
-        injuries: {type: string}
-        schedule_fatigue: {type: string}
-        motivation: {type: string}
-        popularity_story: {type: string}
-        major_recent_matches: {type: string}
+          description: At least five pre-match results. Each item must start with W, D, or L so the engine can parse recent form.
+          items:
+            type: string
+        venue_adaptation:
+          type: string
+        attack_state:
+          type: string
+        defense_state:
+          type: string
+        injuries:
+          type: string
+        schedule_fatigue:
+          type: string
+        motivation:
+          type: string
+        popularity_story:
+          type: string
+        major_recent_matches:
+          type: string
+      additionalProperties: true
+
+    H2HContext:
+      type: object
+      properties:
+        overall:
+          type: string
+        recent_years:
+          type: string
+        same_competition:
+          type: string
+        venue_specific:
+          type: string
+        latest_key_match:
+          type: string
+        market_psychology:
+          type: string
+      additionalProperties: true
+
+    StrengthContext:
+      type: object
+      properties:
+        home_grade:
+          type: string
+          enum:
+            - 下游
+            - 中下
+            - 中游
+            - 中上
+            - 中强
+            - 准强
+            - 普强
+            - 人强
+        away_grade:
+          type: string
+          enum:
+            - 下游
+            - 中下
+            - 中游
+            - 中上
+            - 中强
+            - 准强
+            - 普强
+            - 人强
+        static_gap:
+          type: string
+        dynamic_adjustment:
+          type: string
+        final_gap:
+          type: string
+        original_distribution:
+          type: string
+        theoretical_psychological_interval:
+          type: string
+        theoretical_home_odds_range:
+          type: string
+        theoretical_draw_odds_reference:
+          type: string
+        theoretical_away_odds_reference:
+          type: string
+      additionalProperties: true
+
+    NaturalPull:
+      type: object
+      required:
+        - direction
+      properties:
+        direction:
+          type: string
+          enum:
+            - 主胜
+            - 平局
+            - 客胜
+          description: Must be exactly one of 主胜, 平局, 客胜.
+        strength:
+          type: string
+          description: strong, medium, weak, or equivalent Chinese text.
+        facts:
+          type: string
+        market_psychology:
+          type: string
+        popularity_direction:
+          type: string
+        easy_to_receive:
+          type: boolean
+        first_eye_direction:
+          type: boolean
+      additionalProperties: false
+
+    NarrativeMaterial:
+      type: object
+      required:
+        - direction
+        - topic
+      properties:
+        direction:
+          type: string
+        topic:
+          type: string
+        category:
+          type: string
+        facts:
+          type: string
+        source:
+          type: string
+        published_at:
+          type: string
+        visibility:
+          type: string
+        strength:
+          type: string
+        strength_alignment:
+          type: string
+        institution_use_status:
+          type: string
+        institution_use_evidence:
+          type: array
+          items:
+            type: string
+        utilization_mode:
+          type: string
+      additionalProperties: false
+
+    OriginalBookMode:
+      type: object
+      properties:
+        mode:
+          type: string
+        reason:
+          type: string
+        key_odds_to_watch:
+          type: string
+        easiest_misread:
+          type: string
+        source_classification:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+
     CompanyOdds:
       type: object
-      required: [company, initial, current]
+      required:
+        - company
+        - initial
+        - current
       properties:
         company:
           type: string
-          enum: [William, Ladbrokes, Avg]
+          enum:
+            - William
+            - Ladbrokes
+            - Avg
         initial:
           $ref: "#/components/schemas/OddsSnapshot"
         current:
           $ref: "#/components/schemas/OddsSnapshot"
+      additionalProperties: false
+
     OddsSnapshot:
       type: object
-      required: [home, draw, away]
+      required:
+        - home
+        - draw
+        - away
       properties:
-        home: {type: number}
-        draw: {type: number}
-        away: {type: number}
+        home:
+          type: number
+        draw:
+          type: number
+        away:
+          type: number
+      additionalProperties: false
+
+    FocasAnalyzeResponse:
+      type: object
+      properties:
+        api_schema_version:
+          type: string
+        engine_version:
+          type: string
+        analysis_contract:
+          type: object
+          properties: {}
+          additionalProperties: true
+        match:
+          type: object
+          properties: {}
+          additionalProperties: true
+        status:
+          type: object
+          properties: {}
+          additionalProperties: true
+        expected_opening_interval:
+          type: object
+          properties: {}
+          additionalProperties: true
+        system_routes:
+          type: array
+          items:
+            type: object
+            properties: {}
+            additionalProperties: true
+        opening_skeleton_audits:
+          type: array
+          items:
+            type: object
+            properties: {}
+            additionalProperties: true
+        opening_motive_chain:
+          type: array
+          items:
+            type: object
+            properties: {}
+            additionalProperties: true
+        narrative_audit:
+          type: object
+          properties: {}
+          additionalProperties: true
+        scenario_audit:
+          type: object
+          properties: {}
+          additionalProperties: true
+        opening_interval_audit:
+          type: object
+          properties: {}
+          additionalProperties: true
+        notes:
+          type: array
+          items:
+            type: string
+        report_markdown:
+          type: string
+      additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
+      additionalProperties: true
