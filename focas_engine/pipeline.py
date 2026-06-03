@@ -45,6 +45,8 @@ from .stage9 import describe_odds_face, odds_face_and_company_motive_analysis
 from .strength import fill_strength_context
 from .strength import STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED
 
+STRENGTH_SOURCE_AUTO_ESTIMATED_REVIEW_REQUIRED = "AUTO_ESTIMATED_REVIEW_REQUIRED"
+
 
 class FocasPipeline:
     def __init__(self, *, table_path: str | None = None):
@@ -98,13 +100,6 @@ class FocasPipeline:
         result.strength_context = strength
         result.strength_estimate = estimate
         result.strength_source = getattr(estimate, "source", STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED)
-        if result.strength_source == STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED:
-            return self._stop(
-                result,
-                "Strength_Source = MANUAL_REVIEW_REQUIRED｜广义实力无法稳定分档，禁止进入理论区间与结构方向。",
-                stop_node="广义实力来源闸门",
-                missing_fields=[getattr(estimate, "source_reason", "需要人工校准广义实力档位")],
-            )
         strength_result = strength_gate(strength)
         result.gates.append(strength_result)
         if not strength_result.ok:
@@ -113,6 +108,14 @@ class FocasPipeline:
                 strength_result.stop_message(),
                 stop_node="广义实力分档闸门",
                 missing_fields=strength_result.missing,
+            )
+        if result.strength_source == STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED:
+            result.strength_source = STRENGTH_SOURCE_AUTO_ESTIMATED_REVIEW_REQUIRED
+            source_reason = getattr(estimate, "source_reason", "")
+            if source_reason:
+                result.notes.append(source_reason)
+            result.notes.append(
+                "Strength source requires review, but filled broad-strength fields passed strength_gate; continuing into skeleton and optimal-solution audits."
             )
         result.expected_opening_interval = expected_interval_from_table(strength=strength, estimate=estimate)
 

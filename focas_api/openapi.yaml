@@ -14,7 +14,7 @@ servers:
 paths:
   /v1/analyze:
     post:
-      operationId: analyzeFocasMatchV4
+      operationId: analyzeFocasMatch
       summary: Analyze a football match with FOCAS
       description: >
         Submit normalized match facts, market narratives, and institution odds.
@@ -366,32 +366,25 @@ components:
           items:
             $ref: "#/components/schemas/FreeformObject"
         psychological_interval_audit:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Three-direction theoretical psychological intervals read from the detected 89-96 system sheets.
         opening_board_audit:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: William / Ladbrokes opening home-draw-away board compared against the table interval.
         market_pull_audit:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Three-direction market pull percentages. Percentages are pull share, not match probability.
         optimal_solution_audit:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Counterfactual optimal-solution simulation for home, draw, and away scenarios.
         bookmaker_topic_usage_audit:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Audit of available topics, used topics, unused topics, and utilization mode.
         future_adjustment_plan:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Expected later bookmaker adjustment path if an optimal or better solution exists.
         final_structure_judgement:
-          allOf:
-            - $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/FreeformObject"
           description: Final structural status: EXECUTE, LEAN, BETTER_SOLUTION_ONLY, NO_OPTIMAL_SOLUTION, or NO_BET_STRUCTURE.
         opening_motive_chain:
           type: array

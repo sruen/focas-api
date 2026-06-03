@@ -94,6 +94,7 @@ def analyze_match_input(
             "odds_analysis_status": result.odds_analysis_status,
             "final_direction": result.final_direction,
             "structural_lean": result.structural_lean,
+            "strength_source": result.strength_source,
             "table_read_confirmed": result.table_read_confirmed,
             "expected_interval_status": result.expected_interval_status,
             "skeleton_scope_status": result.skeleton_scope_status,
