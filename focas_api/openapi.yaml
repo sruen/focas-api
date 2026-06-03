@@ -1,55 +1,47 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: FOCAS Match Analysis API
   version: 1.1.5
-  description: >
-    Runs the FOCAS evidence pipeline. Odds values are never numerically
-    converted. Return rate is used only to route each institution snapshot
-    to the matching 89-96 skeleton sheet. The response includes three-direction
-    psychological interval audit, opening board audit, topic usage audit, and
-    optimal-solution / better-solution structure.
+  description: Runs the FOCAS evidence pipeline. Odds are not converted; return rate
+    is used only to route 89-96 skeleton sheets.
 servers:
-  - url: https://focas-api.onrender.com
-
+- url: https://focas-api.onrender.com
 paths:
   /v1/analyze:
     post:
       operationId: analyzeFocasMatch
       summary: Analyze a football match with FOCAS
-      description: >
-        Submit normalized match facts, market narratives, and institution odds.
-        Always call this operation before explaining institution motives or
-        giving a structural direction. GPT must not invent skeleton intervals;
-        it must use the returned audit fields.
+      description: Submit normalized match facts, narratives, and institution odds.
+        Always call this operation before explaining institution motives or structural
+        direction.
       x-openai-isConsequential: false
       security:
-        - FocasApiKey: []
+      - FocasApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FocasAnalyzeRequest"
+              $ref: '#/components/schemas/FocasAnalyzeRequest'
       responses:
-        "200":
+        '200':
           description: FOCAS structured evidence response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FocasAnalyzeResponse"
-        "400":
+                $ref: '#/components/schemas/FocasAnalyzeResponse'
+        '400':
           description: Invalid match input
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
           description: Invalid API key
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     FocasApiKey:
@@ -59,50 +51,50 @@ components:
     FocasAnalyzeRequest:
       type: object
       required:
-        - match
-        - home_context
-        - away_context
-        - h2h
-        - strength
-        - natural_pulls
-        - odds
+      - match
+      - home_context
+      - away_context
+      - h2h
+      - strength
+      - natural_pulls
+      - odds
       properties:
         include_report:
           type: boolean
           default: false
-          description: Return the long Markdown report only when the user requests it.
+          description: Return the long Markdown report only when the user requests
+            it.
         match:
-          $ref: "#/components/schemas/Match"
+          $ref: '#/components/schemas/Match'
         home_context:
-          $ref: "#/components/schemas/TeamContext"
+          $ref: '#/components/schemas/TeamContext'
         away_context:
-          $ref: "#/components/schemas/TeamContext"
+          $ref: '#/components/schemas/TeamContext'
         h2h:
-          $ref: "#/components/schemas/H2HContext"
+          $ref: '#/components/schemas/H2HContext'
         strength:
-          $ref: "#/components/schemas/StrengthContext"
+          $ref: '#/components/schemas/StrengthContext'
         natural_pulls:
           type: array
           items:
-            $ref: "#/components/schemas/NaturalPull"
+            $ref: '#/components/schemas/NaturalPull'
         narrative_materials:
           type: array
           items:
-            $ref: "#/components/schemas/NarrativeMaterial"
+            $ref: '#/components/schemas/NarrativeMaterial'
         original_book_mode:
-          $ref: "#/components/schemas/OriginalBookMode"
+          $ref: '#/components/schemas/OriginalBookMode'
         odds:
           type: array
           minItems: 3
           items:
-            $ref: "#/components/schemas/CompanyOdds"
+            $ref: '#/components/schemas/CompanyOdds'
       additionalProperties: true
-
     Match:
       type: object
       required:
-        - home_team
-        - away_team
+      - home_team
+      - away_team
       properties:
         home_team:
           type: string
@@ -129,30 +121,32 @@ components:
         league_for_table:
           type: string
       additionalProperties: true
-
     TeamContext:
       type: object
       required:
-        - name
-        - rank
-        - points
-        - recent_matches
+      - name
+      - rank
+      - points
+      - recent_matches
       properties:
         name:
           type: string
         rank:
           type: string
-          description: Ranking context. For national teams, use FIFA ranking, for example "FIFA第20，1620.81分".
+          description: Ranking context. For national teams, use FIFA ranking, for
+            example "FIFA第20，1620.81分".
         points:
           type: string
-          description: Points context. For national teams or friendlies, do not leave empty; use FIFA ranking points or official group/table points.
+          description: Points context. For national teams or friendlies, do not leave
+            empty; use FIFA ranking points or official group/table points.
         recent_matches:
           type: array
           minItems: 5
-          description: At least five pre-match results. Each item must start with W, D, or L so the engine can parse recent form.
+          description: At least five pre-match results. Each item must start with
+            W, D, or L so the engine can parse recent form.
           items:
             type: string
-            pattern: "^[WDL]\\s+.+"
+            pattern: ^[WDL]\s+.+
         venue_adaptation:
           type: string
         attack_state:
@@ -170,7 +164,6 @@ components:
         major_recent_matches:
           type: string
       additionalProperties: true
-
     H2HContext:
       type: object
       properties:
@@ -187,32 +180,31 @@ components:
         market_psychology:
           type: string
       additionalProperties: true
-
     StrengthContext:
       type: object
       properties:
         home_grade:
           type: string
           enum:
-            - 下游
-            - 中下
-            - 中游
-            - 中上
-            - 中强
-            - 准强
-            - 普强
-            - 人强
+          - 下游
+          - 中下
+          - 中游
+          - 中上
+          - 中强
+          - 准强
+          - 普强
+          - 人强
         away_grade:
           type: string
           enum:
-            - 下游
-            - 中下
-            - 中游
-            - 中上
-            - 中强
-            - 准强
-            - 普强
-            - 人强
+          - 下游
+          - 中下
+          - 中游
+          - 中上
+          - 中强
+          - 准强
+          - 普强
+          - 人强
         static_gap:
           type: string
         dynamic_adjustment:
@@ -230,18 +222,17 @@ components:
         theoretical_away_odds_reference:
           type: string
       additionalProperties: true
-
     NaturalPull:
       type: object
       required:
-        - direction
+      - direction
       properties:
         direction:
           type: string
           enum:
-            - 主胜
-            - 平局
-            - 客胜
+          - 主胜
+          - 平局
+          - 客胜
           description: Must be exactly one of 主胜, 平局, 客胜.
         strength:
           type: string
@@ -257,12 +248,11 @@ components:
         first_eye_direction:
           type: boolean
       additionalProperties: false
-
     NarrativeMaterial:
       type: object
       required:
-        - direction
-        - topic
+      - direction
+      - topic
       properties:
         direction:
           type: string
@@ -291,7 +281,6 @@ components:
         utilization_mode:
           type: string
       additionalProperties: false
-
     OriginalBookMode:
       type: object
       properties:
@@ -308,32 +297,30 @@ components:
           items:
             type: string
       additionalProperties: true
-
     CompanyOdds:
       type: object
       required:
-        - company
-        - initial
-        - current
+      - company
+      - initial
+      - current
       properties:
         company:
           type: string
           enum:
-            - William
-            - Ladbrokes
-            - Avg
+          - William
+          - Ladbrokes
+          - Avg
         initial:
-          $ref: "#/components/schemas/OddsSnapshot"
+          $ref: '#/components/schemas/OddsSnapshot'
         current:
-          $ref: "#/components/schemas/OddsSnapshot"
+          $ref: '#/components/schemas/OddsSnapshot'
       additionalProperties: false
-
     OddsSnapshot:
       type: object
       required:
-        - home
-        - draw
-        - away
+      - home
+      - draw
+      - away
       properties:
         home:
           type: number
@@ -342,90 +329,64 @@ components:
         away:
           type: number
       additionalProperties: false
-
     FocasAnalyzeResponse:
       type: object
+      description: FOCAS structured response. Contains audit fields including gpt_execution_gate,
+        strength_dynamic_audit, original_distribution_audit, three_direction_development_matrix,
+        optimal_solution_audit, and final_structure_judgement.
       properties:
         api_schema_version:
           type: string
         engine_version:
           type: string
         analysis_contract:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: '#/components/schemas/FreeformObject'
         gpt_execution_gate:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Mandatory GPT reading order and output gate. GPT must read final_structure_judgement last.
+          $ref: '#/components/schemas/FreeformObject'
         movement_contradiction_audit:
           type: array
-          description: Direction-level contradictions between market pull, topic usage, and odds movement. GPT must explain every item before final judgement.
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: '#/components/schemas/FreeformObject'
         match:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: '#/components/schemas/FreeformObject'
         status:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: '#/components/schemas/FreeformObject'
         expected_opening_interval:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: '#/components/schemas/FreeformObject'
         strength_dynamic_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Original-book broad-strength grades, dynamic adjustment, final gap, low-side route and interval. GPT must not invent grades.
+          $ref: '#/components/schemas/FreeformObject'
+        fundamental_topic_audit:
+          $ref: '#/components/schemas/FreeformObject'
         original_distribution_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Pre-odds original distribution type, three-direction pressures, first-eye direction and scenario constraints.
+          $ref: '#/components/schemas/FreeformObject'
+        market_pull_audit:
+          $ref: '#/components/schemas/FreeformObject'
         system_routes:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: '#/components/schemas/FreeformObject'
         skeleton_system_audit:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
-        opening_skeleton_audits:
-          type: array
-          items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: '#/components/schemas/FreeformObject'
         psychological_interval_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Three-direction theoretical psychological intervals read from the detected 89-96 system sheets.
+          $ref: '#/components/schemas/FreeformObject'
         opening_board_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: William / Ladbrokes opening home-draw-away board compared against the table interval.
+          $ref: '#/components/schemas/FreeformObject'
         pre_odds_predicted_odds_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Exact predicted development odds audit. GPT must not generate exact odds unless calculation_status is FORMULA_CONFIRMED.
+          $ref: '#/components/schemas/FreeformObject'
         three_direction_development_matrix:
           type: array
-          description: Home/draw/away optimal development matrix with predicted odds gate, actual odds, adoption status and conclusion.
           items:
-            $ref: "#/components/schemas/FreeformObject"
-        fundamental_topic_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Structured pre-odds fundamental topics: form, H2H, venue, injuries, motivation, ranking and reputation.
-        market_pull_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Three-direction market pull percentages. Percentages are pull share, not match probability.
-        optimal_solution_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Counterfactual optimal-solution simulation for home, draw, and away scenarios.
+            $ref: '#/components/schemas/FreeformObject'
         bookmaker_topic_usage_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Audit of available topics, used topics, unused topics, and utilization mode.
+          $ref: '#/components/schemas/FreeformObject'
+        optimal_solution_audit:
+          $ref: '#/components/schemas/FreeformObject'
         future_adjustment_plan:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Expected later bookmaker adjustment path if an optimal or better solution exists.
+          $ref: '#/components/schemas/FreeformObject'
         final_structure_judgement:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Final structural status: EXECUTE, LEAN, BETTER_SOLUTION_ONLY, NO_OPTIMAL_SOLUTION, or NO_BET_STRUCTURE.
-        opening_motive_chain:
-          type: array
-          items:
-            $ref: "#/components/schemas/FreeformObject"
-        narrative_audit:
-          $ref: "#/components/schemas/FreeformObject"
-        scenario_audit:
-          $ref: "#/components/schemas/FreeformObject"
-        opening_interval_audit:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: '#/components/schemas/FreeformObject'
         notes:
           type: array
           items:
@@ -433,15 +394,14 @@ components:
         report_markdown:
           type: string
       additionalProperties: true
-
     FreeformObject:
       type: object
+      description: Arbitrary FOCAS object.
       properties:
         schema_note:
           type: string
-          description: Optional placeholder; response objects may include additional FOCAS fields.
+          description: Optional placeholder field; actual FOCAS responses may include additional fields.
       additionalProperties: true
-
     ErrorResponse:
       type: object
       properties:
