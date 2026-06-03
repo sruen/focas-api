@@ -128,6 +128,14 @@ def test_opening_audit_reads_theoretical_range_from_detected_company_system(mini
     assert result.market_pull_audit is not None
     assert len(result.market_pull_audit.directions) == 3
     assert sum(item.pull_percent for item in result.market_pull_audit.directions) == pytest.approx(100.0)
+    assert result.fundamental_topic_audit is not None
+    assert len(result.fundamental_topic_audit.topics) >= 6
+    topic_sources = [
+        source
+        for direction in result.market_pull_audit.directions
+        for source in direction.topic_sources
+    ]
+    assert any(":" in source for source in topic_sources)
     assert result.bookmaker_topic_usage_audit is not None
     assert result.optimal_solution_audit is not None
     assert result.optimal_solution_audit.solution_status in {

@@ -30,6 +30,8 @@ def test_api_exposes_opening_skeleton_audit_before_motive_chain():
     payload = analyze_match_input(_valid_input())
     assert payload["opening_skeleton_audits"]
     assert payload["opening_motive_chain"]
+    assert payload["fundamental_topic_audit"]
+    assert len(payload["fundamental_topic_audit"]["topics"]) >= 6
     audit = payload["opening_skeleton_audits"][0]
     assert audit["raw_opening_home"] is not None
     assert audit["expected_home_min"] is not None
