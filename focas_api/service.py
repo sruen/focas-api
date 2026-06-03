@@ -70,6 +70,8 @@ def analyze_match_input(
             "odds_comparison_basis": "raw_institution_odds",
             "return_rate_usage": "route_to_matching_89_96_system_sheet_only",
             "institution_motive_requires_confirmed_skeleton_audit": True,
+            "analysis_mode": "FINAL_PASS_GATE_DISABLED",
+            "lean_output_allowed": True,
             "pass_must_not_be_overridden_by_gpt": True,
         },
         "match": {
