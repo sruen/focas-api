@@ -82,10 +82,53 @@ def _empty(value) -> bool:
     return False
 
 
+def _match_rule_text(ctx: MatchContext) -> str:
+    parts = [
+        ctx.competition,
+        ctx.stage,
+        ctx.match_type,
+        ctx.extra_time_or_penalties,
+        getattr(ctx.home, "motivation", None) if ctx.home else None,
+        getattr(ctx.away, "motivation", None) if ctx.away else None,
+        getattr(ctx.home, "schedule_fatigue", None) if ctx.home else None,
+        getattr(ctx.away, "schedule_fatigue", None) if ctx.away else None,
+    ]
+    return " ".join(str(item or "") for item in parts)
+
+
+def _rule_field_inferable(ctx: MatchContext, attr: str) -> bool:
+    text = _match_rule_text(ctx)
+    friendly = any(key in text for key in ("友谊", "friendly", "Friendly", "热身"))
+    single = any(key in text for key in ("单回合", "单场", "single leg", "single-leg", "one-off", "一场定胜负"))
+    no_extra = any(
+        key in text
+        for key in (
+            "90分钟",
+            "常规时间",
+            "无加时",
+            "无加时赛",
+            "没有加时",
+            "无点球",
+            "无点球大战",
+            "no extra time",
+            "no penalties",
+        )
+    )
+    if attr == "stage":
+        return friendly or bool(ctx.match_type or ctx.competition)
+    if attr == "single_leg":
+        return friendly or single
+    if attr == "extra_time_or_penalties":
+        return friendly or no_extra
+    return False
+
+
 def basic_context_gate(ctx: MatchContext) -> GateResult:
     missing: list[str] = []
     for attr, label in MATCH_REQUIRED.items():
         if _empty(getattr(ctx, attr)):
+            if attr in {"stage", "single_leg", "extra_time_or_penalties"} and _rule_field_inferable(ctx, attr):
+                continue
             missing.append(label)
 
     for side_name, team in (("主队", ctx.home), ("客队", ctx.away)):
