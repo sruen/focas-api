@@ -197,12 +197,12 @@ def main() -> None:
         for audit in result.interval_audit.audits:
             print(
                 f"- {audit.company}｜体系={audit.system or '未确认'}｜理论区间={audit.expected_interval_id}"
-                f"｜理论主赔范围={audit.expected_home_min}-{audit.expected_home_max}"
+                f"｜理论低赔范围={audit.expected_home_min}-{audit.expected_home_max}"
                 f"｜平赔参考={audit.expected_draw_reference_min}-{audit.expected_draw_reference_max}"
                 f"｜负赔参考={audit.expected_away_reference_min}-{audit.expected_away_reference_max}"
                 f"｜机构原始初赔={audit.raw_opening_home}/{audit.raw_opening_draw}/{audit.raw_opening_away}"
-                f"｜主/平/负偏差={audit.home_range_deviation}/{audit.draw_reference_deviation}/{audit.away_reference_deviation}"
-                f"｜主赔合理性={audit.price_reasonableness}｜审计状态={audit.hard_status}"
+                f"｜低赔/平/非低赔胜项偏差={audit.home_range_deviation}/{audit.draw_reference_deviation}/{audit.away_reference_deviation}"
+                f"｜低赔合理性={audit.price_reasonableness}｜审计状态={audit.hard_status}"
             )
 
     if result.stop:

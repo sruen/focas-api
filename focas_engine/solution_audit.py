@@ -65,17 +65,22 @@ def _hard_company_sets(odds_coordinates) -> list:
     ]
 
 
+LOW_SIDE_TO_DIRECTION = {"主低赔": "主胜", "客低赔": "客胜", "平低赔_特殊": "平局"}
+
+
 def _profile_range(
     profile: SkeletonIntervalProfile | None,
     direction: str,
+    expected_low_side: str | None = None,
 ) -> tuple[float | None, float | None, str]:
     if profile is None:
         return None, None, "UNCONFIRMED"
-    if direction == "主胜":
-        return profile.main_price_min, profile.main_price_max, "PRECISE_MAIN_PRICE_AXIS"
+    precise_direction = LOW_SIDE_TO_DIRECTION.get(expected_low_side or "")
+    if direction == precise_direction:
+        return profile.main_price_min, profile.main_price_max, "PRECISE_LOW_PRICE_AXIS"
     if direction == "平局":
         return profile.draw_reference_min, profile.draw_reference_max, "MARKET_LADDER_REFERENCE"
-    return profile.away_reference_min, profile.away_reference_max, "MARKET_LADDER_REFERENCE"
+    return profile.away_reference_min, profile.away_reference_max, "OPPOSITE_WIN_REFERENCE"
 
 
 def _range_deviation(value: float, lower: float | None, upper: float | None) -> float | None:
@@ -103,10 +108,10 @@ def _direction_semantic(direction: str, status: str) -> str:
         return "表内三项心理区间不完整，只能保留观察，不能冒充精确判断。"
     if direction == "主胜":
         if status == "LOWER_THAN_PSYCHOLOGICAL_INTERVAL":
-            return "主赔低于理论心理区间，可能是控赔、增信或深开，需要看平负是否能分散主胜。"
+            return "主胜赔率低于理论心理区间，可能是控赔、增信或深开，需要看另外两项是否能分散主胜。"
         if status == "HIGHER_THAN_PSYCHOLOGICAL_INTERVAL":
-            return "主赔高于理论心理区间，可能是阻主、降热或韬开；不能直接判定主队不利。"
-        return "主赔落在理论心理区间内，先按骨架合理位处理。"
+            return "主胜赔率高于理论心理区间，可能是阻主、降热或韬开；不能直接判定主队不利。"
+        return "主胜赔率落在理论心理区间内，先按骨架合理位处理。"
     if direction == "平局":
         if status == "LOWER_THAN_PSYCHOLOGICAL_INTERVAL":
             return "平赔低于理论心理区间，平局承接增强，常用于分散主胜或客胜压力。"
@@ -269,10 +274,10 @@ def build_psychological_interval_audit(
             if key in seen:
                 continue
             seen.add(key)
-            lower, upper, precision = _profile_range(profile, direction)
+            lower, upper, precision = _profile_range(profile, direction, expected.expected_low_side)
             notes = []
-            if precision != "PRECISE_MAIN_PRICE_AXIS":
-                notes.append("该项来自骨架表机构档口参考，不得冒充主赔精确轴。")
+            if precision != "PRECISE_LOW_PRICE_AXIS":
+                notes.append("该项来自骨架表机构档口参考，不得冒充低赔精确轴。")
             direction_intervals.append(
                 DirectionPsychologicalInterval(
                     direction=direction,
@@ -295,7 +300,7 @@ def build_psychological_interval_audit(
         direction_intervals=direction_intervals,
         notes=[
             "三项区间按机构初赔返还率识别出的 89-96 体系 sheet 读取；赔率不做数值转换。",
-            "主胜为当前骨架精确轴；平局和客胜若表内只提供参考范围，报告必须保持参考口径。",
+            "当前低赔方向使用低赔精确轴；平局和非低赔胜项若表内只提供参考范围，报告必须保持参考口径。",
         ],
     )
 
@@ -327,7 +332,7 @@ def build_opening_board_audit(
             attr = ODDS_ATTR_BY_DIRECTION[direction]
             opening = float(getattr(initial, f"odds_{attr}"))
             latest = float(getattr(current, f"odds_{attr}"))
-            lower, upper, precision = _profile_range(profile, direction)
+            lower, upper, precision = _profile_range(profile, direction, expected.expected_low_side)
             status = _position_status(opening, lower, upper)
             delta = latest - opening
             action = "抬高" if delta > 0.005 else "拉低" if delta < -0.005 else "稳定"

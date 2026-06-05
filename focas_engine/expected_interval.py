@@ -130,18 +130,18 @@ def expected_interval_from_gap(gap: Optional[float]) -> ExpectedOpeningInterval:
             notes=notes,
         )
     if gap >= 1.75:
-        interval, low_side, water = 10, "主低赔", "中水"
+        interval, low_side, water = min(10, 2 + int(round(gap / 0.5))), "主低赔", "中水"
     elif gap >= 1.25:
-        interval, low_side, water = 8, "主低赔", "中水"
+        interval, low_side, water = 2 + int(round(gap / 0.5)), "主低赔", "中水"
     elif gap >= 0.75:
-        interval, low_side, water = 5, "主低赔", "中水"
+        interval, low_side, water = 2 + int(round(gap / 0.5)), "主低赔", "中水"
     elif gap >= 0.25:
         interval, low_side, water = 3, "主低赔", "中水"
     elif gap > -0.25:
         interval, low_side, water = 2, "主低赔", "中水"
     elif gap >= -1.0:
-        interval, low_side, water = 1, "客低赔", "中水"
-        notes.append("客队高0.5-1档时，fallback 使用客低赔1区。")
+        interval, low_side, water = max(0, 2 + int(round(gap / 0.5))), "客低赔", "中水"
+        notes.append("客队高0.5-1档时，fallback 按每0.5档移动一个骨架区间。")
     else:
         interval, low_side, water = 0, "客低赔", "高水"
     return _expected(
@@ -242,15 +242,9 @@ def _opening_low_coordinate(company_set):
 def _semantic_tags(coord, expected: ExpectedOpeningInterval, delta: Optional[int]) -> tuple[list[str], str, str]:
     if coord is None or expected.expected_interval_id is None or delta is None:
         return [], "无法比较理论区间与现实初赔。", "UNCONFIRMED"
-    if coord.direction != "主胜":
-        return (
-            ["非主赔低项", "组合参考待复核"],
-            "当前骨架表只有主赔精确轴。平赔或客赔成为最低项时，只能保留组合参考，不得把主赔轴区间冒充该方向的精确骨架。",
-            "COMBINATION_REVIEW_REQUIRED",
-        )
     gap = expected.final_gap_value
     if delta == 0:
-        return ["顺区间"], "现实初赔与表驱动理论区间一致。", "CONFIRMED"
+        return ["顺区间"], "现实初赔低赔项与表驱动理论低赔区间一致。", "CONFIRMED"
     if coord.table_direction == "主低赔":
         if delta > 0:
             if gap is not None and gap < 0:
@@ -274,12 +268,12 @@ def _range_deviation(value: Optional[float], lower: Optional[float], upper: Opti
     return 0.0
 
 
-def _reasonableness(home_deviation: Optional[float], profile_status: str) -> str:
-    if profile_status != "PROFILE_CONFIRMED" or home_deviation is None:
+def _reasonableness(low_deviation: Optional[float], profile_status: str) -> str:
+    if profile_status != "PROFILE_CONFIRMED" or low_deviation is None:
         return "REVIEW_REQUIRED"
-    if home_deviation < 0:
+    if low_deviation < 0:
         return "DEEPER_THAN_THEORETICAL_RANGE"
-    if home_deviation > 0:
+    if low_deviation > 0:
         return "SHALLOWER_THAN_THEORETICAL_RANGE"
     return "WITHIN_THEORETICAL_RANGE"
 
@@ -337,8 +331,8 @@ def audit_opening_interval(
             else None
         )
         profile_status = profile.status if profile else "PROFILE_REVIEW_REQUIRED"
-        home_deviation = _range_deviation(
-            float(coord.odds_home),
+        low_deviation = _range_deviation(
+            float(coord.actual_low_odds),
             getattr(profile, "main_price_min", None),
             getattr(profile, "main_price_max", None),
         )
@@ -352,11 +346,11 @@ def audit_opening_interval(
             getattr(profile, "away_reference_min", None),
             getattr(profile, "away_reference_max", None),
         )
-        price_reasonableness = _reasonableness(home_deviation, profile_status)
+        price_reasonableness = _reasonableness(low_deviation, profile_status)
         if profile_status != "PROFILE_CONFIRMED":
             hard_status = "EXPECTED_SKELETON_REVIEW_REQUIRED"
             interpretation = (
-                f"{coord.system} 的理论 {expected.expected_interval_id} 区没有可调用主赔精确骨架，"
+                f"{coord.system} 的理论 {expected.expected_interval_id} 区没有可调用低赔精确骨架，"
                 "不得推断机构初赔动机。"
             )
         deviation = "无法比较" if delta is None else "顺区间" if delta == 0 else f"现实深于理论{delta}区" if delta > 0 else f"现实浅于理论{abs(delta)}区"
@@ -388,7 +382,7 @@ def audit_opening_interval(
             expected_draw_reference_max=getattr(profile, "draw_reference_max", None),
             expected_away_reference_min=getattr(profile, "away_reference_min", None),
             expected_away_reference_max=getattr(profile, "away_reference_max", None),
-            home_range_deviation=home_deviation,
+            home_range_deviation=low_deviation,
             draw_reference_deviation=draw_deviation,
             away_reference_deviation=away_deviation,
             price_reasonableness=price_reasonableness,

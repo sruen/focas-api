@@ -150,7 +150,7 @@ def opening_motive_readings(
 
 def _table_position(move: OddsMove, table_results: list[TableLookupResult]) -> str:
     if move.direction != "主胜":
-        return "非主赔精确轴；仅作组合赔率参考"
+        return "非低赔精确轴；仅作组合赔率参考"
     move_company = normalize_company(move.company)
     for result in table_results:
         if normalize_company(result.company) != move_company:

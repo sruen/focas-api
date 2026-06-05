@@ -127,7 +127,7 @@ def _low_coordinates(result: PipelineResult, hard_only: bool) -> list:
 
 def _lookup_lines(result: PipelineResult, *, hard_only: bool) -> list[str]:
     lines = [
-        "| 公司 | 时点 | 赔率 | 返还率 | 识别体系 | 最低项 | 主赔轴区间 | 水位 | 主赔轴赔率 | 实际最低赔率 | 边界距离 | 落点状态 | lookup_status |",
+        "| 公司 | 时点 | 赔率 | 返还率 | 识别体系 | 最低项 | 低赔轴区间 | 水位 | 低赔轴赔率 | 实际最低赔率 | 边界距离 | 落点状态 | lookup_status |",
         "|---|---|---|---:|---|---|---|---|---:|---:|---:|---|---|",
     ]
     rows = _low_coordinates(result, hard_only)
@@ -164,9 +164,9 @@ def _opening_skeleton_audit_lines(result: PipelineResult) -> list[str]:
     lines = [
         f"- P4 理论骨架：{_safe(getattr(expected, 'expected_interval', None))}。来源：{_safe(getattr(expected, 'expected_interval_source', None))}。",
         "- 审计顺序：先识别机构初赔返还率体系，再读取该体系工作表中的理论区间赔率，最后比较机构发布的原始初赔。赔率数值不做二次转换。未确认骨架时，不得解释机构动机。",
-        "- 平赔和负赔是机构档口参考范围；主赔是骨架精确调用范围。",
+        "- 当前最低赔项使用低赔骨架精确调用范围；平赔和另一端胜赔是机构档口参考范围。",
         "",
-        "| 公司 | 初赔体系 | 理论区间 | 理论主赔范围 | 平赔档口参考 | 负赔档口参考 | 机构原始初赔 | 实际最近区间 | 主赔偏差 | 平赔参考偏差 | 负赔参考偏差 | 主赔合理性 | 审计状态 |",
+        "| 公司 | 初赔体系 | 理论区间 | 理论低赔范围 | 平赔档口参考 | 非低赔胜项参考 | 机构原始初赔 | 实际最近区间 | 低赔偏差 | 平赔参考偏差 | 非低赔胜项参考偏差 | 低赔合理性 | 审计状态 |",
         "|---|---|---:|---|---|---|---|---:|---:|---:|---:|---|---|",
     ]
     for item in interval_audit.audits:

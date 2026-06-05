@@ -10,9 +10,11 @@ from .models import OddsSystemConversion, SkeletonIntervalProfile, TableLookupRe
 from .returns import low_direction, low_odds
 
 SYSTEM_SHEETS = {f"{value}系": f"{value}体系" for value in range(89, 97)}
-MAIN_PRICE_COLUMN = "主赔_骨架精确"
+# Historical workbook header. In the FOCAS skeleton workbook this column is
+# the precise low-odds axis, not always the home-win odds axis.
+LOW_PRICE_COLUMN = "主赔_骨架精确"
 DRAW_REFERENCE_COLUMN = "平赔_机构档口参考"
-AWAY_REFERENCE_COLUMN = "负赔_机构档口参考"
+OPPOSITE_WIN_REFERENCE_COLUMN = "负赔_机构档口参考"
 
 
 def _to_float(value: Any) -> Optional[float]:
@@ -47,7 +49,7 @@ def load_system_rows(xlsx_path: str, system: str) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for row_number, values in enumerate(rows_iter, start=3):
             item = {headers[index]: values[index] if index < len(values) else None for index in range(len(headers))}
-            if _to_float(item.get(MAIN_PRICE_COLUMN)) is None:
+            if _to_float(item.get(LOW_PRICE_COLUMN)) is None:
                 continue
             item["__row_number__"] = row_number
             rows.append(item)
@@ -56,15 +58,15 @@ def load_system_rows(xlsx_path: str, system: str) -> list[dict[str, Any]]:
         workbook.close()
 
 
-def _row_score(row: dict[str, Any], actual_home_odds: float) -> float:
-    return abs((_to_float(row.get(MAIN_PRICE_COLUMN)) or 999.0) - actual_home_odds)
+def _row_score(row: dict[str, Any], actual_low_odds: float) -> float:
+    return abs((_to_float(row.get(LOW_PRICE_COLUMN)) or 999.0) - actual_low_odds)
 
 
 def _bounds(rows: list[dict[str, Any]], selected: dict[str, Any]) -> tuple[float, float, float, str]:
-    reference = _to_float(selected.get(MAIN_PRICE_COLUMN))
+    reference = _to_float(selected.get(LOW_PRICE_COLUMN))
     if reference is None:
-        raise ValueError("MAIN_PRICE_AXIS_MISSING")
-    prices = sorted({_to_float(row.get(MAIN_PRICE_COLUMN)) for row in rows if _to_float(row.get(MAIN_PRICE_COLUMN)) is not None})
+        raise ValueError("LOW_PRICE_AXIS_MISSING")
+    prices = sorted({_to_float(row.get(LOW_PRICE_COLUMN)) for row in rows if _to_float(row.get(LOW_PRICE_COLUMN)) is not None})
     index = prices.index(reference)
     previous_value = prices[index - 1] if index > 0 else reference - 0.10
     next_value = prices[index + 1] if index + 1 < len(prices) else reference + 0.10
@@ -82,15 +84,15 @@ def load_interval_profile(xlsx_path: str, system: str, interval_id: int) -> Skel
     """Read the bookmaker-system skeleton values for one theoretical interval."""
 
     rows = [row for row in load_system_rows(xlsx_path, system) if _interval(row.get("区间")) == interval_id]
-    main_min, main_max = _range([_to_float(row.get(MAIN_PRICE_COLUMN)) for row in rows])
+    main_min, main_max = _range([_to_float(row.get(LOW_PRICE_COLUMN)) for row in rows])
     draw_min, draw_max = _range([_to_float(row.get(DRAW_REFERENCE_COLUMN)) for row in rows])
-    away_min, away_max = _range([_to_float(row.get(AWAY_REFERENCE_COLUMN)) for row in rows])
+    away_min, away_max = _range([_to_float(row.get(OPPOSITE_WIN_REFERENCE_COLUMN)) for row in rows])
     status = "PROFILE_CONFIRMED" if main_min is not None and main_max is not None else "PROFILE_REVIEW_REQUIRED"
     notes = []
     if status != "PROFILE_CONFIRMED":
-        notes.append(f"{system} {interval_id}区没有可调用的主赔精确骨架。")
+        notes.append(f"{system} {interval_id}区没有可调用的低赔精确骨架。")
     if draw_min is None or draw_max is None or away_min is None or away_max is None:
-        notes.append("平赔或负赔机构档口参考不完整。")
+        notes.append("平赔或非低赔胜项机构档口参考不完整。")
     return SkeletonIntervalProfile(
         system=system,
         sheet_name=SYSTEM_SHEETS.get(system, system),
@@ -131,17 +133,17 @@ def lookup_company_odds(
     rows = load_system_rows(xlsx_path, system)
     if not rows:
         raise ValueError(f"NO_TABLE_ROW: {system}")
-    selected = min(rows, key=lambda row: _row_score(row, snapshot.home))
+    selected = min(rows, key=lambda row: _row_score(row, actual_low))
     lower, upper, reference, water_band = _bounds(rows, selected)
-    if snapshot.home < lower:
+    if actual_low < lower:
         deviation = "低于表内下界"
-        boundary_distance = lower - snapshot.home
-    elif snapshot.home > upper:
+        boundary_distance = lower - actual_low
+    elif actual_low > upper:
         deviation = "高于表内上界"
-        boundary_distance = snapshot.home - upper
+        boundary_distance = actual_low - upper
     else:
         deviation = "表内"
-        boundary_distance = min(snapshot.home - lower, upper - snapshot.home)
+        boundary_distance = min(actual_low - lower, upper - actual_low)
     direction = low_direction(snapshot)
     return TableLookupResult(
         company=company,
@@ -159,7 +161,7 @@ def lookup_company_odds(
         sheet_name=SYSTEM_SHEETS[system],
         row_number=int(selected["__row_number__"]),
         lookup_status="TABLE_READ_CONFIRMED",
-        table_axis="home",
-        table_axis_odds=float(snapshot.home),
+        table_axis="low",
+        table_axis_odds=float(actual_low),
         raw_row=selected,
     )

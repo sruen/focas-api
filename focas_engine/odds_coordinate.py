@@ -137,11 +137,11 @@ def coordinate_snapshot(*, xlsx_path: str, league: str = "", conversion: OddsSys
         sheet_name=lookup.sheet_name,
         row_number=lookup.row_number,
         lookup_status=lookup.lookup_status,
-        coordinate_status="已按返还率体系读取新版主赔精确骨架；平赔与负赔仅作为组合参考。",
-        evidence_level="主赔骨架精确",
+        coordinate_status="已按返还率体系读取低赔精确骨架；平赔与非低赔胜项仅作为组合参考。",
+        evidence_level="低赔骨架精确",
         conversion_status=conversion.conversion_status,
-        table_axis="home",
-        table_axis_odds=float(snapshot.home),
+        table_axis=lookup.table_axis,
+        table_axis_odds=lookup.table_axis_odds,
         raw_row=lookup.raw_row,
     )]
 

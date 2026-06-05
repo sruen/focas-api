@@ -8,7 +8,7 @@ from .models import MatchContext, StrengthContext, TeamContext
 
 
 GRADE_ORDER = ["下游", "中下", "中游", "中上", "中强", "准强", "普强", "人强"]
-GRADE_SCORE = {grade: idx for idx, grade in enumerate(GRADE_ORDER)}
+GRADE_SCORE = {grade: idx * 0.5 for idx, grade in enumerate(GRADE_ORDER)}
 ALLOWED_GRADES = set(GRADE_ORDER)
 
 STRENGTH_SOURCE_USER_PROVIDED = "USER_PROVIDED"
@@ -50,14 +50,14 @@ class StrengthEstimateResult:
     source_reason: str = ""
 
 
-def grade_to_score(grade: str | None) -> Optional[int]:
+def grade_to_score(grade: str | None) -> Optional[float]:
     if not grade:
         return None
     return GRADE_SCORE.get(grade.strip())
 
 
 def score_to_grade(score: float) -> str:
-    """Map a 0-7 continuous broad-strength score to the project grade ladder."""
+    """Map a 0-7 estimator score to the project grade ladder."""
     idx = int(round(max(0, min(7, score))))
     return GRADE_ORDER[idx]
 
@@ -285,15 +285,15 @@ def _gap_label_value(value: float) -> str:
     return f"{side}高{amount:g}档"
 
 
-def _distribution_from_gap(steps: int, match: MatchContext) -> str:
+def _distribution_from_gap(gap_value: float, match: MatchContext) -> str:
     # This is a conservative first-pass classification; original mode may override it.
     if match.neutral_venue or (match.match_type and any(k in match.match_type for k in ("决赛", "淘汰", "杯"))):
-        if abs(steps) <= 1:
+        if abs(gap_value) <= 0.5:
             return "中庸分布 / 强强或杯赛压缩备选"
         return "顺分布 / 强弱盘备选"
-    if steps >= 2:
+    if gap_value >= 1.0:
         return "顺分布备选"
-    if steps <= -1:
+    if gap_value <= -0.5:
         return "逆分布或客向顺分布备选"
     return "中庸分布备选"
 
@@ -321,12 +321,12 @@ def estimate_strength_context(match: MatchContext) -> StrengthEstimateResult:
     away_est = estimate_team_strength(match.away, side="客队")
 
     static_gap = grade_to_score(home_est.grade) - grade_to_score(away_est.grade)  # type: ignore[operator]
-    raw_score_gap = home_est.score - away_est.score
+    raw_score_gap = (home_est.score - away_est.score) / 2
     dynamic_gap_value = _round_to_half(raw_score_gap - static_gap)
     final_gap_value = _round_to_half(raw_score_gap)
-    dynamic_gap = round(dynamic_gap_value)
-    final_gap = round(final_gap_value)
-    distribution = _distribution_from_gap(final_gap, match)
+    dynamic_gap = int(round(dynamic_gap_value * 2))
+    final_gap = int(round(final_gap_value * 2))
+    distribution = _distribution_from_gap(final_gap_value, match)
     psychological, home_range, draw_reference, away_reference = _theoretical_odds_references(final_gap_value)
 
     warnings: list[str] = [
@@ -346,7 +346,7 @@ def estimate_strength_context(match: MatchContext) -> StrengthEstimateResult:
     return StrengthEstimateResult(
         home=home_est,
         away=away_est,
-        static_gap_steps=int(static_gap),
+        static_gap_steps=int(round(static_gap * 2)),
         dynamic_gap_steps=int(dynamic_gap),
         final_gap_steps=int(final_gap),
         final_gap_label=_gap_label_value(final_gap_value),
@@ -403,7 +403,7 @@ def fill_strength_context(existing: StrengthContext, match: MatchContext) -> tup
     filled = StrengthContext(
         home_grade=existing.home_grade or estimate.home.grade,
         away_grade=existing.away_grade or estimate.away.grade,
-        static_gap=existing.static_gap or _gap_label(estimate.static_gap_steps),
+        static_gap=existing.static_gap or _gap_label_value(estimate.static_gap_value),
         dynamic_adjustment=existing.dynamic_adjustment or (
             f"自动估算动态差={estimate.dynamic_gap_value:g}档；"
             f"主队components={estimate.home.components}；客队components={estimate.away.components}"
