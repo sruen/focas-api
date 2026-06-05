@@ -13,12 +13,6 @@ from .checks import (
 from .config import HARD_DATA_SOURCE, is_legacy_hard_data_source, resolve_table_path
 from .context_modifiers import build_event_context_modifiers
 from .expected_interval import audit_opening_interval, expected_interval_from_table
-from .development_matrix import (
-    build_original_distribution_audit,
-    build_pre_odds_predicted_odds_audit,
-    build_strength_dynamic_audit,
-    build_three_direction_development_matrix,
-)
 from .fundamental_topics import build_fundamental_topic_audit
 from .integrated_structure import integrated_structure_judgement
 from .models import (
@@ -41,8 +35,11 @@ from .relative_selection import select_relative_mainline
 from .scenario_audit import build_scenario_audit
 from .solution_audit import (
     build_bookmaker_topic_usage_audit,
+    build_engine_suggestion,
     build_final_structure_judgement,
     build_future_adjustment_plan,
+    build_movement_authority_audit,
+    build_opening_anchor_audit,
     build_market_pull_audit,
     build_opening_board_audit,
     build_optimal_solution_audit,
@@ -125,11 +122,6 @@ class FocasPipeline:
                 "Strength source requires review, but filled broad-strength fields passed strength_gate; continuing into skeleton and optimal-solution audits."
             )
         result.expected_opening_interval = expected_interval_from_table(strength=strength, estimate=estimate)
-        result.strength_dynamic_audit = build_strength_dynamic_audit(
-            strength=strength,
-            expected=result.expected_opening_interval,
-            estimate=estimate,
-        )
 
         pull_gate = natural_pull_gate(pulls)
         result.gates.append(pull_gate)
@@ -141,9 +133,6 @@ class FocasPipeline:
             match=match,
             strength=strength,
             pulls=pulls,
-        )
-        result.original_distribution_audit = build_original_distribution_audit(
-            distribution=result.original_distribution,
         )
         distribution_gate = original_distribution_gate(result.original_distribution)
         result.gates.append(distribution_gate)
@@ -302,22 +291,19 @@ class FocasPipeline:
             odds_coordinates=result.odds_coordinates,
             xlsx_path=self.table_path,
         )
-        result.pre_odds_predicted_odds_audit = build_pre_odds_predicted_odds_audit(
-            formula_confirmed=False,
-        )
-        result.three_direction_development_matrix = build_three_direction_development_matrix(
-            strength_audit=result.strength_dynamic_audit,
-            distribution=result.original_distribution,
-            distribution_audit=result.original_distribution_audit,
-            pre_odds_audit=result.pre_odds_predicted_odds_audit,
-            opening_board_audit=result.opening_board_audit,
-            odds=odds,
-        )
         result.market_pull_audit = build_market_pull_audit(
             pulls=pulls,
             original_distribution=result.original_distribution,
             narrative_audit=result.narrative_audit,
             fundamental_topic_audit=result.fundamental_topic_audit,
+        )
+        result.opening_anchor_audit = build_opening_anchor_audit(
+            opening_board_audit=result.opening_board_audit,
+            market_pull_audit=result.market_pull_audit,
+        )
+        result.movement_authority_audit = build_movement_authority_audit(
+            opening_board_audit=result.opening_board_audit,
+            opening_anchor_audit=result.opening_anchor_audit,
         )
         result.bookmaker_topic_usage_audit = build_bookmaker_topic_usage_audit(
             market_pull_audit=result.market_pull_audit,
@@ -337,6 +323,11 @@ class FocasPipeline:
         )
         result.final_structure_judgement = build_final_structure_judgement(
             optimal_solution_audit=result.optimal_solution_audit,
+        )
+        result.engine_suggestion = build_engine_suggestion(
+            optimal_solution_audit=result.optimal_solution_audit,
+            opening_anchor_audit=result.opening_anchor_audit,
+            movement_authority_audit=result.movement_authority_audit,
         )
 
         # Stage 10: synthesize the full reasoning chain. Summary statuses are last, not first.
@@ -410,22 +401,33 @@ class FocasPipeline:
         if result.final_structure_judgement:
             judgement = result.final_structure_judgement
             result.notes.append(
-                f"Optimal solution layer: {judgement.status}"
+                f"Compatibility final_structure_judgement layer: {judgement.status}"
                 + (f"｜direction={judgement.direction}" if judgement.direction else "")
                 + f"｜reason={judgement.reason}"
             )
-            if judgement.status == "EXECUTE" and judgement.direction:
+            result.notes.append(
+                "Backend evidence-only mode: GPT must audit opening_anchor_audit, "
+                "movement_authority_audit, topic usage, and contradictions before any judgement."
+            )
+            if False and judgement.status == "EXECUTE" and judgement.direction:
                 result.final_direction = judgement.direction
                 result.decision_status = "EXECUTE"
                 result.mainline_output_status = "ALLOWED"
-            elif judgement.status == "BETTER_SOLUTION_ONLY" and judgement.direction:
+            elif False and judgement.status == "BETTER_SOLUTION_ONLY" and judgement.direction:
                 result.final_direction = judgement.direction
                 result.decision_status = "BETTER_SOLUTION_ONLY"
                 result.mainline_output_status = "ALLOWED_WITH_CAUTION"
-            elif judgement.status in {"NO_OPTIMAL_SOLUTION", "NO_BET_STRUCTURE"}:
+            elif False and judgement.status in {"NO_OPTIMAL_SOLUTION", "NO_BET_STRUCTURE"}:
                 result.final_direction = "NO_BET"
                 result.decision_status = judgement.status
                 result.mainline_output_status = "NO_BET_STRUCTURE"
         result.report_mode = "FULL_REPORT"
         result.scenario_audit = build_scenario_audit(result=result)
+        result.notes.append(
+            "Backend result tendency is disabled. final_direction and structural_lean are not exported as analysis conclusions."
+        )
+        result.final_direction = None
+        result.structural_lean = None
+        result.decision_status = "EVIDENCE_ONLY"
+        result.mainline_output_status = "BACKEND_TENDENCY_FORBIDDEN"
         return result

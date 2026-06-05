@@ -7,6 +7,7 @@ from .models import (
     BookmakerTopicUsageAudit,
     BookmakerTopicUsageDirection,
     DirectionPsychologicalInterval,
+    EngineSuggestion,
     ExpectedOpeningInterval,
     FinalStructureJudgement,
     FundamentalTopicAudit,
@@ -19,6 +20,11 @@ from .models import (
     OpeningBoardAudit,
     OpeningBoardCompanyAudit,
     OpeningBoardDirectionAudit,
+    MovementAuthorityAudit,
+    MovementAuthorityDirection,
+    OpeningAnchorAudit,
+    OpeningAnchorCompany,
+    OpeningAnchorDirection,
     OptimalScenario,
     OptimalSolutionAudit,
     OriginalDistribution,
@@ -357,6 +363,186 @@ def build_opening_board_audit(
     return audit
 
 
+def _movement_action(opening: float, current: float) -> str:
+    delta = current - opening
+    if delta < -0.005:
+        return "DROP"
+    if delta > 0.005:
+        return "RISE"
+    return "STABLE"
+
+
+def _pull_percent(market_pull_audit: MarketPullAudit | None, direction: str) -> float | None:
+    item = _market_pull_item(market_pull_audit, direction)
+    return item.pull_percent if item else None
+
+
+def build_opening_anchor_audit(
+    *,
+    opening_board_audit: OpeningBoardAudit | None,
+    market_pull_audit: MarketPullAudit | None,
+) -> OpeningAnchorAudit:
+    audit = OpeningAnchorAudit(
+        notes=[
+            "Opening odds are the first anchor. Later movement is audit material and cannot overwrite the opening anchor by default.",
+            "This layer explains first-eye low side, shallow/deep opening, and available diversion sides before final scenario judgement.",
+        ]
+    )
+    if not opening_board_audit or not opening_board_audit.company_audits:
+        audit.notes.append("No William/Ladbrokes opening board was available, so opening anchoring is not confirmed.")
+        return audit
+
+    for company in opening_board_audit.company_audits:
+        if not company.direction_audits:
+            continue
+        low_item = min(company.direction_audits, key=lambda item: item.opening_odds)
+        if low_item.position_status == "WITHIN_PSYCHOLOGICAL_INTERVAL":
+            anchor_status = "ANCHOR_WITHIN_THEORETICAL_INTERVAL"
+        elif low_item.position_status == "LOWER_THAN_PSYCHOLOGICAL_INTERVAL":
+            anchor_status = "ANCHOR_DEEPER_THAN_THEORETICAL_INTERVAL"
+        elif low_item.position_status == "HIGHER_THAN_PSYCHOLOGICAL_INTERVAL":
+            anchor_status = "ANCHOR_SHALLOWER_THAN_THEORETICAL_INTERVAL"
+        else:
+            anchor_status = "ANCHOR_REVIEW_REQUIRED"
+
+        company_anchor = OpeningAnchorCompany(
+            company=company.company,
+            system=company.system,
+            low_direction=low_item.direction,
+            anchor_status=anchor_status,
+            first_impression=f"{company.company} first-eye low side is {low_item.direction} at {low_item.opening_odds}.",
+        )
+        for item in company.direction_audits:
+            pull = _pull_percent(market_pull_audit, item.direction)
+            if item.direction == low_item.direction:
+                role = "FIRST_EYE_LOW_SIDE"
+            elif pull is not None and pull >= 22:
+                role = "DIVERSION_CANDIDATE"
+            else:
+                role = "WEAK_OR_REFERENCE_SIDE"
+
+            if item.position_status == "WITHIN_PSYCHOLOGICAL_INTERVAL":
+                predicted_vs_actual = "TABLE_ALIGNED"
+            elif item.position_status == "LOWER_THAN_PSYCHOLOGICAL_INTERVAL":
+                predicted_vs_actual = "ACTUAL_LOWER_THAN_TABLE"
+            elif item.position_status == "HIGHER_THAN_PSYCHOLOGICAL_INTERVAL":
+                predicted_vs_actual = "ACTUAL_HIGHER_THAN_TABLE"
+            else:
+                predicted_vs_actual = "TABLE_RANGE_REVIEW_REQUIRED"
+
+            action = _movement_action(item.opening_odds, item.current_odds)
+            diversion_capacity = "AVAILABLE" if (pull is not None and pull >= 22) or action == "DROP" else "WEAK"
+            contradictions = []
+            if item.position_status == "RANGE_REVIEW_REQUIRED":
+                contradictions.append("table range is incomplete for this direction")
+            if role == "FIRST_EYE_LOW_SIDE" and predicted_vs_actual == "ACTUAL_HIGHER_THAN_TABLE":
+                contradictions.append("low side is shallower than theoretical anchor")
+
+            company_anchor.direction_anchors.append(
+                OpeningAnchorDirection(
+                    direction=item.direction,
+                    opening_role=role,
+                    first_impression=f"{item.direction} opening={item.opening_odds}, current={item.current_odds}, action={action}.",
+                    predicted_vs_actual=predicted_vs_actual,
+                    market_pull_percent=pull,
+                    diversion_capacity=diversion_capacity,
+                    evidence=[
+                        f"position_status={item.position_status}",
+                        f"precision={item.precision}",
+                        f"movement_action={action}",
+                    ],
+                    contradictions=contradictions,
+                )
+            )
+        audit.company_anchors.append(company_anchor)
+
+    audit.can_be_overturned_by_movement = False
+    return audit
+
+
+def build_movement_authority_audit(
+    *,
+    opening_board_audit: OpeningBoardAudit | None,
+    opening_anchor_audit: OpeningAnchorAudit | None,
+) -> MovementAuthorityAudit:
+    audit = MovementAuthorityAudit(
+        notes=[
+            "Movement authority classifies later odds movement as extension, correction, distribution management, interference, or opening denial.",
+            "A movement does not deny the opening anchor unless hard companies form a repeated, shared, low-contradiction closed chain.",
+        ]
+    )
+    if not opening_board_audit or not opening_board_audit.company_audits:
+        audit.notes.append("No opening board was available, so movement authority is not confirmed.")
+        return audit
+
+    low_by_company = {
+        item.company: item.low_direction
+        for item in (opening_anchor_audit.company_anchors if opening_anchor_audit else [])
+    }
+    company_overturn_votes: dict[str, int] = {}
+    company_total_votes: dict[str, int] = {}
+    for company in opening_board_audit.company_audits:
+        low_direction = low_by_company.get(company.company)
+        summary_parts: list[str] = []
+        for item in company.direction_audits:
+            action = _movement_action(item.opening_odds, item.current_odds)
+            if action == "STABLE":
+                movement_type = "EXTENDS_OPENING"
+                authority_level = "LOW"
+                can_overturn = False
+                reason = "Stable movement normally extends or preserves the opening anchor."
+            elif item.direction == low_direction and action == "DROP":
+                movement_type = "CONFIRMS_OPENING_LOW_SIDE"
+                authority_level = "MEDIUM"
+                can_overturn = False
+                reason = "The opening low side was further lowered, so it confirms rather than denies the anchor."
+            elif item.direction == low_direction and action == "RISE":
+                movement_type = "DISTRIBUTION_MANAGEMENT_OR_COOLING"
+                authority_level = "LOW"
+                can_overturn = False
+                reason = "The low side rose, but this is cooling/resistance unless other companies build a shared denial chain."
+            elif action == "DROP":
+                movement_type = "DISTRIBUTION_MANAGEMENT"
+                authority_level = "LOW"
+                can_overturn = False
+                reason = "A non-anchor side was lowered; this is first treated as diversion or distribution management."
+            else:
+                movement_type = "SUPPRESSES_NON_ANCHOR_SIDE"
+                authority_level = "LOW"
+                can_overturn = False
+                reason = "A non-anchor side rose; it suppresses that side and cannot overturn the opening anchor alone."
+
+            if can_overturn:
+                company_overturn_votes[company.company] = company_overturn_votes.get(company.company, 0) + 1
+            company_total_votes[company.company] = company_total_votes.get(company.company, 0) + 1
+            summary_parts.append(f"{item.direction}:{action}/{movement_type}")
+            audit.direction_movements.append(
+                MovementAuthorityDirection(
+                    company=company.company,
+                    direction=item.direction,
+                    opening_odds=item.opening_odds,
+                    current_odds=item.current_odds,
+                    action=action,
+                    movement_type=movement_type,
+                    authority_level=authority_level,
+                    can_overturn_opening=can_overturn,
+                    reason=reason,
+                )
+            )
+        audit.company_summaries[company.company] = "; ".join(summary_parts)
+
+    hard_companies = {
+        company.company
+        for company in opening_board_audit.company_audits
+        if normalize_company(company.company) in HARD_COMPANIES
+    }
+    if hard_companies and all(company_overturn_votes.get(company, 0) >= 2 for company in hard_companies):
+        audit.global_authority = "OPENING_DENIAL_REVIEW_REQUIRED"
+    else:
+        audit.global_authority = "NO_OPENING_OVERTURN_AUTHORITY"
+    return audit
+
+
 def build_market_pull_audit(
     *,
     pulls: list[NaturalPull],
@@ -617,6 +803,12 @@ def build_optimal_solution_audit(
     opening_board_audit: OpeningBoardAudit | None,
     bookmaker_topic_usage_audit: BookmakerTopicUsageAudit | None,
 ) -> OptimalSolutionAudit:
+    """Compare three result scenarios without selecting a backend direction.
+
+    The backend is an evidence provider. It can show which scenario has the
+    highest explanation score, but it must not output that scenario as a result
+    tendency. GPT owns the final analysis.
+    """
     scenarios = [
         _score_scenario(
             direction,
@@ -630,26 +822,20 @@ def build_optimal_solution_audit(
     audit = OptimalSolutionAudit(scenarios=scenarios)
     if not opening_board_audit or not opening_board_audit.company_audits:
         audit.solution_status = "NO_BET_STRUCTURE"
-        audit.notes.append("缺少三项初赔对照，不能模拟机构最优解。")
+        audit.selected_direction = None
+        audit.notes.append("缺少三项初赔对照，只能返回资料缺失状态。")
         return audit
 
     best = max(scenarios, key=lambda item: item.explanation_score)
     ranked = sorted(scenarios, key=lambda item: item.explanation_score, reverse=True)
     margin = ranked[0].explanation_score - ranked[1].explanation_score if len(ranked) > 1 else ranked[0].explanation_score
-    audit.selected_direction = best.target_direction if best.status in {"OPTIMAL_FIT", "BETTER_FIT"} else None
-
-    if best.status == "OPTIMAL_FIT" and margin >= 0.06:
-        audit.solution_status = "OPTIMAL_SOLUTION_FOUND"
-        audit.better_solution_required = False
-        audit.notes.append(f"{best.target_direction}情景解释力最高，且分流项具备承接能力。")
-    elif best.status in {"OPTIMAL_FIT", "BETTER_FIT"}:
-        audit.solution_status = "BETTER_SOLUTION_ONLY"
-        audit.better_solution_required = True
-        audit.notes.append("没有完美最优解，只能输出解释力最高的更优解。")
-    else:
-        audit.solution_status = "NO_OPTIMAL_SOLUTION"
-        audit.better_solution_required = False
-        audit.notes.append("三项情景都无法低风险解释当前初赔和后续变赔。")
+    audit.selected_direction = None
+    audit.solution_status = "SCENARIO_AUDIT_ONLY"
+    audit.better_solution_required = False
+    audit.notes.append("后端无倾向模式：只返回三项情景审计，不选择赛果方向。")
+    audit.notes.append(
+        f"解释分最高情景={best.target_direction}，分差={margin:.4f}；这只是资料，不是后端倾向。"
+    )
     return audit
 
 
@@ -706,45 +892,60 @@ def build_future_adjustment_plan(
     return plan
 
 
+def build_engine_suggestion(
+    *,
+    optimal_solution_audit: OptimalSolutionAudit | None,
+    opening_anchor_audit: OpeningAnchorAudit | None,
+    movement_authority_audit: MovementAuthorityAudit | None,
+) -> EngineSuggestion:
+    """Return a direction-neutral evidence pack under the legacy field name."""
+    if not optimal_solution_audit:
+        return EngineSuggestion(
+            status="ENGINE_EVIDENCE_MISSING",
+            direction=None,
+            confidence="N/A",
+            suggestion_reason="三项情景审计未生成，后端无法提供资料包。",
+            accepted_by_engine=False,
+            required_gpt_review=True,
+            source_status="MISSING_OPTIMAL_SOLUTION_AUDIT",
+        )
+
+    source_status = optimal_solution_audit.solution_status
+    supporting: list[str] = []
+    contradictions: list[str] = []
+    for scenario in optimal_solution_audit.scenarios:
+        supporting.append(
+            f"{scenario.target_direction}: score={scenario.explanation_score:.4f}, "
+            f"opening_fit={scenario.opening_fit}, movement_fit={scenario.movement_fit}, "
+            f"status={scenario.status}"
+        )
+        contradictions.extend(f"{scenario.target_direction}: {item}" for item in scenario.contradictions)
+    if movement_authority_audit and movement_authority_audit.global_authority != "NO_OPENING_OVERTURN_AUTHORITY":
+        contradictions.append(movement_authority_audit.global_authority)
+    if opening_anchor_audit and not opening_anchor_audit.company_anchors:
+        contradictions.append("opening anchor audit missing hard-company anchors")
+
+    return EngineSuggestion(
+        status="ENGINE_EVIDENCE_PACK_ONLY",
+        direction=None,
+        confidence="N/A",
+        suggestion_reason="后端只提供资料包：三项情景、初赔锁定、变赔权限、题材使用与反证。GPT负责最终分析。",
+        accepted_by_engine=False,
+        supporting_evidence=supporting,
+        contradiction_flags=contradictions + list(optimal_solution_audit.notes),
+        required_gpt_review=True,
+        source_status=source_status,
+    )
+
+
 def build_final_structure_judgement(
     *,
     optimal_solution_audit: OptimalSolutionAudit | None,
 ) -> FinalStructureJudgement:
-    if not optimal_solution_audit:
-        return FinalStructureJudgement(
-            status="NO_BET_STRUCTURE",
-            direction=None,
-            reason="最优解审计未生成。",
-            confidence="低",
-        )
-    if optimal_solution_audit.solution_status == "OPTIMAL_SOLUTION_FOUND":
-        return FinalStructureJudgement(
-            status="EXECUTE",
-            direction=optimal_solution_audit.selected_direction,
-            reason="找到机构最优解：目标方向、分流方向、初赔落点和后续动作具备闭合解释。",
-            confidence="中高",
-            warnings=list(optimal_solution_audit.notes),
-        )
-    if optimal_solution_audit.solution_status == "BETTER_SOLUTION_ONLY":
-        return FinalStructureJudgement(
-            status="BETTER_SOLUTION_ONLY",
-            direction=optimal_solution_audit.selected_direction,
-            reason="没有完美最优解，但存在解释力最高的更优解；允许输出结构方向，必须说明风险。",
-            confidence="中",
-            warnings=list(optimal_solution_audit.notes),
-        )
-    if optimal_solution_audit.solution_status == "NO_OPTIMAL_SOLUTION":
-        return FinalStructureJudgement(
-            status="NO_OPTIMAL_SOLUTION",
-            direction=None,
-            reason="三项情景都不能低风险解释当前做盘，机构没有清晰最优解。",
-            confidence="低",
-            warnings=list(optimal_solution_audit.notes),
-        )
     return FinalStructureJudgement(
-        status="NO_BET_STRUCTURE",
+        status="BACKEND_EVIDENCE_ONLY",
         direction=None,
-        reason="结构混乱或关键审计缺失，不能输出执行方向。",
-        confidence="低",
-        warnings=list(optimal_solution_audit.notes),
+        reason="后端赛果倾向输出已关闭；该字段仅作为兼容占位。",
+        confidence="N/A",
+        warnings=list(optimal_solution_audit.notes if optimal_solution_audit else []),
     )

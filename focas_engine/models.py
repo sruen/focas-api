@@ -428,6 +428,57 @@ class OpeningBoardAudit:
 
 
 @dataclass
+class OpeningAnchorDirection:
+    direction: str
+    opening_role: str
+    first_impression: str
+    predicted_vs_actual: str
+    market_pull_percent: Optional[float] = None
+    diversion_capacity: str = "UNCONFIRMED"
+    evidence: List[str] = field(default_factory=list)
+    contradictions: List[str] = field(default_factory=list)
+
+
+@dataclass
+class OpeningAnchorCompany:
+    company: str
+    system: str
+    low_direction: str
+    anchor_status: str
+    first_impression: str
+    direction_anchors: List[OpeningAnchorDirection] = field(default_factory=list)
+
+
+@dataclass
+class OpeningAnchorAudit:
+    company_anchors: List[OpeningAnchorCompany] = field(default_factory=list)
+    opening_priority_rule: str = "OPENING_FIRST_MOVEMENT_SECOND"
+    can_be_overturned_by_movement: bool = False
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class MovementAuthorityDirection:
+    company: str
+    direction: str
+    opening_odds: float
+    current_odds: float
+    action: str
+    movement_type: str
+    authority_level: str
+    can_overturn_opening: bool
+    reason: str
+
+
+@dataclass
+class MovementAuthorityAudit:
+    direction_movements: List[MovementAuthorityDirection] = field(default_factory=list)
+    company_summaries: Dict[str, str] = field(default_factory=dict)
+    global_authority: str = "NO_OPENING_OVERTURN_AUTHORITY"
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
 class MarketPullDirectionAudit:
     direction: str
     pull_strength: str
@@ -512,6 +563,19 @@ class FinalStructureJudgement:
     reason: str
     confidence: str
     warnings: List[str] = field(default_factory=list)
+
+
+@dataclass
+class EngineSuggestion:
+    status: str
+    direction: Optional[str]
+    confidence: str
+    suggestion_reason: str
+    accepted_by_engine: bool
+    supporting_evidence: List[str] = field(default_factory=list)
+    contradiction_flags: List[str] = field(default_factory=list)
+    required_gpt_review: bool = True
+    source_status: str = "UNCONFIRMED"
 
 
 @dataclass
@@ -701,57 +765,6 @@ class ScenarioAuditResult:
 
 
 @dataclass
-class StrengthDynamicAudit:
-    home_grade: Optional[str] = None
-    away_grade: Optional[str] = None
-    allowed_grades: List[str] = field(default_factory=list)
-    static_gap: Optional[str] = None
-    dynamic_adjustment: Optional[str] = None
-    final_gap: Optional[str] = None
-    final_gap_value: Optional[float] = None
-    final_gap_label: Optional[str] = None
-    expected_low_side: Optional[str] = None
-    expected_interval: Optional[str] = None
-    interpretation: str = ""
-    ok: bool = False
-    notes: List[str] = field(default_factory=list)
-
-
-@dataclass
-class OriginalDistributionAudit:
-    distribution_type: Optional[str] = None
-    home_pressure: Optional[str] = None
-    draw_pressure: Optional[str] = None
-    away_pressure: Optional[str] = None
-    first_eye_direction: Optional[str] = None
-    weak_confidence_directions: List[str] = field(default_factory=list)
-    dispersion_available: Dict[str, bool] = field(default_factory=dict)
-    scenario_constraints: List[str] = field(default_factory=list)
-    reasoning: List[str] = field(default_factory=list)
-
-
-@dataclass
-class PreOddsPredictedOddsAudit:
-    calculation_status: str = "MISSING_FORMULA"
-    formula_source: str = "MANUAL_REVIEW_REQUIRED"
-    gpt_may_generate_exact_odds: bool = False
-    scenario_predictions: List[Dict[str, Any]] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
-
-
-@dataclass
-class ThreeDirectionDevelopmentMatrixItem:
-    target_direction: str
-    strength_and_distribution_constraint: str = ""
-    optimal_development_logic: str = ""
-    predicted_odds: Dict[str, Any] = field(default_factory=dict)
-    actual_odds: Dict[str, str] = field(default_factory=dict)
-    adoption_status: str = "UNCONFIRMED"
-    conclusion: str = ""
-    notes: List[str] = field(default_factory=list)
-
-
-@dataclass
 class PipelineResult:
     gates: List[GateResult]
     basic_context_status: str = "UNCONFIRMED"
@@ -787,15 +800,14 @@ class PipelineResult:
     fundamental_topic_audit: Optional[FundamentalTopicAudit] = None
     psychological_interval_audit: Optional[PsychologicalIntervalAudit] = None
     opening_board_audit: Optional[OpeningBoardAudit] = None
+    opening_anchor_audit: Optional[OpeningAnchorAudit] = None
+    movement_authority_audit: Optional[MovementAuthorityAudit] = None
     market_pull_audit: Optional[MarketPullAudit] = None
     bookmaker_topic_usage_audit: Optional[BookmakerTopicUsageAudit] = None
     optimal_solution_audit: Optional[OptimalSolutionAudit] = None
     future_adjustment_plan: Optional[FutureAdjustmentPlan] = None
     final_structure_judgement: Optional[FinalStructureJudgement] = None
-    strength_dynamic_audit: Optional[StrengthDynamicAudit] = None
-    original_distribution_audit: Optional[OriginalDistributionAudit] = None
-    pre_odds_predicted_odds_audit: Optional[PreOddsPredictedOddsAudit] = None
-    three_direction_development_matrix: List[ThreeDirectionDevelopmentMatrixItem] = field(default_factory=list)
+    engine_suggestion: Optional[EngineSuggestion] = None
     decision_status: str = "PASS"
     structural_lean: Optional[str] = None
     skeleton_scope_status: str = "HOME_AXIS_ONLY"
