@@ -99,10 +99,34 @@ components:
           type: string
         kickoff_time:
           type: string
+        stage:
+          type: string
+          description: Match stage, for example International friendly, group stage, league round, semi-final, or final.
+        match_stage:
+          type: string
+          description: Alias for stage.
         neutral_venue:
           type: boolean
+        single_leg:
+          type: boolean
+          description: Whether this match is a single-leg match. Friendlies should normally be true.
+        single_match:
+          type: boolean
+          description: Alias for single_leg.
         match_type:
           type: string
+        extra_time_or_penalties:
+          type: string
+          description: Extra-time or penalty rules. For friendlies use no extra time or penalties, 90 minutes only.
+        extra_time_rule:
+          type: string
+          description: Alias for extra_time_or_penalties.
+        penalty_rule:
+          type: string
+          description: Penalty shootout rule.
+        result_scope:
+          type: string
+          description: Result settlement scope, for example 90 minutes only.
         real_home_away:
           type: boolean
         attention_level:

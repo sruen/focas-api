@@ -40,7 +40,13 @@ class FocasApiHandler(BaseHTTPRequestHandler):
         if not expected:
             return True
         authorization = self.headers.get("Authorization", "")
-        return authorization == f"Bearer {expected}"
+        api_key_headers = {
+            authorization,
+            authorization.removeprefix("Bearer ").strip(),
+            self.headers.get("X-Focas-Api-Key", ""),
+            self.headers.get("X-API-Key", ""),
+        }
+        return expected in api_key_headers
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
