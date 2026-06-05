@@ -1,27 +1,16 @@
 openapi: 3.1.0
 info:
-  title: FOCAS Match Analysis API
+  title: FOCAS Evidence API
   version: 1.1.5
-  description: >
-    Runs the FOCAS evidence pipeline. Odds values are never numerically
-    converted. Return rate is used only to route each institution snapshot
-    to the matching 89-96 skeleton sheet. The response includes three-direction
-    psychological interval audit, opening board audit, topic usage audit, and
-    three-scenario evidence pack. The backend never gives a match-result
-    tendency; GPT owns the final analysis.
+  description: FOCAS backend evidence provider. It returns odds, skeleton, topic, movement, and scenario audit data only. It does not return a home/draw/away result tendency.
 servers:
   - url: https://focas-api.onrender.com
-
 paths:
   /v1/analyze:
     post:
       operationId: analyzeFocasMatch
-      summary: Analyze a football match with FOCAS
-      description: >
-        Submit normalized match facts, market narratives, and institution odds.
-        Always call this operation before explaining institution motives.
-        GPT must not invent skeleton intervals, and must treat the response as
-        evidence only. The backend does not provide a home/draw/away tendency.
+      summary: Build FOCAS evidence for a football match
+      description: Submit pre-match facts and odds. The response is evidence only; GPT must perform the final match analysis.
       x-openai-isConsequential: false
       security:
         - FocasApiKey: []
@@ -33,7 +22,7 @@ paths:
               $ref: "#/components/schemas/FocasAnalyzeRequest"
       responses:
         "200":
-          description: FOCAS structured evidence response
+          description: FOCAS evidence response
           content:
             application/json:
               schema:
@@ -50,7 +39,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
 components:
   securitySchemes:
     FocasApiKey:
@@ -70,8 +58,7 @@ components:
       properties:
         include_report:
           type: boolean
-          default: false
-          description: Return the long Markdown report only when the user requests it.
+          description: Set true only when a long markdown report is needed.
         match:
           $ref: "#/components/schemas/Match"
         home_context:
@@ -98,7 +85,6 @@ components:
           items:
             $ref: "#/components/schemas/CompanyOdds"
       additionalProperties: true
-
     Match:
       type: object
       required:
@@ -113,24 +99,15 @@ components:
           type: string
         kickoff_time:
           type: string
-        stage:
-          type: string
         neutral_venue:
           type: boolean
-        single_leg:
-          type: boolean
         match_type:
-          type: string
-        extra_time_or_penalties:
           type: string
         real_home_away:
           type: boolean
         attention_level:
           type: string
-        league_for_table:
-          type: string
       additionalProperties: true
-
     TeamContext:
       type: object
       required:
@@ -140,13 +117,10 @@ components:
           type: string
         rank:
           type: string
-          description: Ranking context. For national teams, use FIFA ranking, for example "FIFA第20，1620.81分".
         points:
           type: string
-          description: Points context. For national teams or friendlies, do not leave empty; use FIFA ranking points or official group/table points.
         recent_matches:
           type: array
-          description: At least five pre-match results. Each item must start with W, D, or L so the engine can parse recent form.
           items:
             type: string
         venue_adaptation:
@@ -166,7 +140,6 @@ components:
         major_recent_matches:
           type: string
       additionalProperties: true
-
     H2HContext:
       type: object
       properties:
@@ -183,32 +156,13 @@ components:
         market_psychology:
           type: string
       additionalProperties: true
-
     StrengthContext:
       type: object
       properties:
         home_grade:
           type: string
-          enum:
-            - 下游
-            - 中下
-            - 中游
-            - 中上
-            - 中强
-            - 准强
-            - 普强
-            - 人强
         away_grade:
           type: string
-          enum:
-            - 下游
-            - 中下
-            - 中游
-            - 中上
-            - 中强
-            - 准强
-            - 普强
-            - 人强
         static_gap:
           type: string
         dynamic_adjustment:
@@ -226,7 +180,6 @@ components:
         theoretical_away_odds_reference:
           type: string
       additionalProperties: true
-
     NaturalPull:
       type: object
       required:
@@ -234,14 +187,9 @@ components:
       properties:
         direction:
           type: string
-          enum:
-            - 主胜
-            - 平局
-            - 客胜
-          description: Must be exactly one of 主胜, 平局, 客胜.
+          description: Use one of home, draw, away, or Chinese equivalents.
         strength:
           type: string
-          description: strong, medium, weak, or equivalent Chinese text.
         facts:
           type: string
         market_psychology:
@@ -252,8 +200,7 @@ components:
           type: boolean
         first_eye_direction:
           type: boolean
-      additionalProperties: false
-
+      additionalProperties: true
     NarrativeMaterial:
       type: object
       required:
@@ -276,8 +223,6 @@ components:
           type: string
         strength:
           type: string
-        strength_alignment:
-          type: string
         institution_use_status:
           type: string
         institution_use_evidence:
@@ -286,8 +231,7 @@ components:
             type: string
         utilization_mode:
           type: string
-      additionalProperties: false
-
+      additionalProperties: true
     OriginalBookMode:
       type: object
       properties:
@@ -304,7 +248,6 @@ components:
           items:
             type: string
       additionalProperties: true
-
     CompanyOdds:
       type: object
       required:
@@ -314,16 +257,12 @@ components:
       properties:
         company:
           type: string
-          enum:
-            - William
-            - Ladbrokes
-            - Avg
+          description: William, Ladbrokes, Avg, or another company name if supported.
         initial:
           $ref: "#/components/schemas/OddsSnapshot"
         current:
           $ref: "#/components/schemas/OddsSnapshot"
-      additionalProperties: false
-
+      additionalProperties: true
     OddsSnapshot:
       type: object
       required:
@@ -338,7 +277,6 @@ components:
         away:
           type: number
       additionalProperties: false
-
     FocasAnalyzeResponse:
       type: object
       properties:
@@ -347,68 +285,53 @@ components:
         engine_version:
           type: string
         analysis_contract:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         match:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         status:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         expected_opening_interval:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         system_routes:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: "#/components/schemas/AuditObject"
         skeleton_system_audit:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: "#/components/schemas/AuditObject"
         opening_skeleton_audits:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: "#/components/schemas/AuditObject"
         psychological_interval_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Three-direction theoretical psychological intervals read from the detected 89-96 system sheets.
+          $ref: "#/components/schemas/AuditObject"
         opening_board_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: William / Ladbrokes opening home-draw-away board compared against the table interval.
+          $ref: "#/components/schemas/AuditObject"
         opening_anchor_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Opening-first anchor audit from V3.9.1/V4.0. Later movement is audit material, not a default override.
+          $ref: "#/components/schemas/AuditObject"
         movement_authority_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Classifies later odds movement as extension, correction, distribution management, interference, or opening denial review.
+          $ref: "#/components/schemas/AuditObject"
         fundamental_topic_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Structured pre-odds fundamental topics: form, H2H, venue, injuries, motivation, ranking and reputation.
+          $ref: "#/components/schemas/AuditObject"
         market_pull_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Three-direction market pull percentages. Percentages are pull share, not match probability.
+          $ref: "#/components/schemas/AuditObject"
         optimal_solution_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Direction-neutral counterfactual scenario audit for home, draw, and away. It must not be treated as a backend pick.
+          $ref: "#/components/schemas/AuditObject"
         bookmaker_topic_usage_audit:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Audit of available topics, used topics, unused topics, and utilization mode.
-        future_adjustment_plan:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Compatibility field. Backend tendency output is disabled, so target_direction should be null.
-        final_structure_judgement:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Backward-compatible legacy field. Backend result tendency is disabled; do not treat it as a direction.
+          $ref: "#/components/schemas/AuditObject"
         engine_suggestion:
-          $ref: "#/components/schemas/FreeformObject"
-          description: Direction-neutral evidence pack under a legacy field name. GPT must perform the final analysis.
+          $ref: "#/components/schemas/AuditObject"
+        final_structure_judgement:
+          $ref: "#/components/schemas/AuditObject"
         opening_motive_chain:
           type: array
           items:
-            $ref: "#/components/schemas/FreeformObject"
+            $ref: "#/components/schemas/AuditObject"
         narrative_audit:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         scenario_audit:
-          $ref: "#/components/schemas/FreeformObject"
-        opening_interval_audit:
-          $ref: "#/components/schemas/FreeformObject"
+          $ref: "#/components/schemas/AuditObject"
         notes:
           type: array
           items:
@@ -416,15 +339,12 @@ components:
         report_markdown:
           type: string
       additionalProperties: true
-
-    FreeformObject:
+    AuditObject:
       type: object
       properties:
         schema_note:
           type: string
-          description: Optional placeholder; response objects may include additional FOCAS fields.
       additionalProperties: true
-
     ErrorResponse:
       type: object
       properties:
