@@ -182,17 +182,23 @@ components:
       additionalProperties: true
     StrengthContext:
       type: object
+      description: Broad-strength input. Use only the fixed FOCAS grade ladder; do not invent labels such as strong team, weak team, giant, or underdog.
       properties:
         home_grade:
           type: string
+          description: "Home broad-strength grade. Allowed values only: 下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强."
         away_grade:
           type: string
+          description: "Away broad-strength grade. Allowed values only: 下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强."
         static_gap:
           type: string
+          description: "Static grade relation before dynamic correction, for example 主队高两档, 客队高一档, 双方同档."
         dynamic_adjustment:
           type: string
+          description: "Dynamic correction from venue, injuries, schedule, motivation, or matchup, for example 中立场削弱主队0.5档."
         final_gap:
           type: string
+          description: "Final dynamic relation after correction, for example 主队高两档, 主队高1.5档, 客队高两档, 客队高0.5档, 双方同档. The backend maps this to p4_strength_key and then to the skeleton interval bridge table."
         original_distribution:
           type: string
         theoretical_psychological_interval:
