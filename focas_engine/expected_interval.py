@@ -140,10 +140,10 @@ def expected_interval_from_gap(gap: Optional[float]) -> ExpectedOpeningInterval:
     elif gap > -0.25:
         interval, low_side, water = 2, "主低赔", "中水"
     elif gap >= -1.0:
-        interval, low_side, water = 1, "主低赔", "中水"
-        notes.append("客队高0.5-1档时，fallback 使用浅主低赔1区。")
+        interval, low_side, water = 1, "客低赔", "中水"
+        notes.append("客队高0.5-1档时，fallback 使用客低赔1区。")
     else:
-        interval, low_side, water = 0, "主低赔", "高水"
+        interval, low_side, water = 0, "客低赔", "高水"
     return _expected(
         gap=gap,
         low_side=low_side,
