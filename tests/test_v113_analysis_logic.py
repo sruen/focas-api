@@ -194,7 +194,7 @@ def test_frontend_report_exposes_opening_skeleton_reasonableness_audit(mini_tabl
     )
     assert "初赔合理性审计：理论骨架 vs 机构实际初赔" in text
     assert "初赔体系" in text
-    assert "理论主赔范围" in text
+    assert "理论低赔范围" in text
     assert "机构原始初赔" in text
     assert "赔率数值不做二次转换" in text
     assert "未确认骨架时，不得解释机构动机" in text

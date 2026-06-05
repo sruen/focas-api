@@ -32,7 +32,7 @@ def _write_corrected_table(path: Path) -> str:
     water_offsets = (("高水", 0.04), ("中水", 0.0), ("低水", -0.04))
     for system in range(89, 97):
         sheet = workbook.create_sheet(f"{system}体系")
-        sheet.append([f"{system}体系｜测试现代主赔骨架区间表"])
+        sheet.append([f"{system}体系｜测试现代低赔骨架区间表"])
         sheet.append(headers)
         for interval in range(9):
             for water, offset in water_offsets:

@@ -30,7 +30,7 @@ def test_away_half_grade_maps_to_expected_interval_one():
     assert expected.expected_low_side == "客低赔"
     assert expected.expected_interval_id == 1
     assert expected.expected_interval_source == "RULE_FALLBACK"
-    assert "客队高0.5-1档" in "".join(expected.notes)
+    assert "每0.5档移动一个骨架区间" in "".join(expected.notes)
 
 
 def test_formal_expected_interval_comes_from_table():
@@ -49,7 +49,7 @@ def test_formal_expected_interval_comes_from_table():
 
 def test_formal_away_two_grade_maps_to_away_low_skeleton_bridge():
     strength = StrengthContext(
-        home_grade="中游",
+        home_grade="下游",
         away_grade="中强",
         static_gap="客队高两档",
         dynamic_adjustment="维持",
@@ -60,3 +60,17 @@ def test_formal_away_two_grade_maps_to_away_low_skeleton_bridge():
     assert expected.expected_low_side == "客低赔"
     assert expected.expected_interval_id == 0
     assert expected.expected_water_band == "高水"
+
+
+def test_formal_home_one_grade_maps_to_interval_four_with_half_grade_scale():
+    strength = StrengthContext(
+        home_grade="普强",
+        away_grade="中强",
+        static_gap="主队高一档",
+        dynamic_adjustment="维持",
+        final_gap="主队高一档",
+    )
+    expected = expected_interval_from_table(strength=strength)
+    assert expected.p4_strength_key == "gap:1.0"
+    assert expected.expected_low_side == "主低赔"
+    assert expected.expected_interval_id == 4

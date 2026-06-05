@@ -23,7 +23,7 @@ def test_odds_coordinate_marks_non_low_items_as_reference(mini_table):
     coords = result.company_sets[0].coordinates
     assert len(coords) == 2
     assert any(c.time_point == "current" and c.is_snapshot_low for c in coords)
-    assert all(c.evidence_level == "主赔骨架精确" for c in coords)
+    assert all(c.evidence_level == "低赔骨架精确" for c in coords)
     assert all(c.conversion_status for c in coords)
 
 
@@ -43,7 +43,7 @@ def test_ladbrokes_uses_detected_system_sheet(mini_table):
     assert low is not None
     assert low.lookup_status == "TABLE_READ_CONFIRMED"
     assert low.sheet_name == f"{low.system.removesuffix('系')}体系"
-    assert low.evidence_level == "主赔骨架精确"
+    assert low.evidence_level == "低赔骨架精确"
 
 
 def test_table_lookup_requires_system_routing_metadata(mini_table):

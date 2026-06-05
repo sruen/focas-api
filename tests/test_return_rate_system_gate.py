@@ -141,7 +141,7 @@ def test_frontend_lookup_evidence_and_float_format(mini_table):
     text = render_frontend_report(
         match=match, strength=strength, pulls=pulls, book_mode=mode, odds=odds, result=result
     )
-    for field in ("公司", "时点", "赔率", "返还率", "识别体系", "最低项", "主赔轴区间", "水位", "边界距离", "lookup_status"):
+    for field in ("公司", "时点", "赔率", "返还率", "识别体系", "最低项", "低赔轴区间", "水位", "边界距离", "lookup_status"):
         assert field in text
     assert HARD_DATA_SOURCE in text
     assert re.search(r"\d+\.\d{7,}", text) is None

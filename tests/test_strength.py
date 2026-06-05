@@ -1,5 +1,6 @@
 from focas_engine.models import MatchContext, TeamContext
 from focas_engine.strength import (
+    GRADE_SCORE,
     STRENGTH_SOURCE_AUTO_ESTIMATED,
     STRENGTH_SOURCE_MANUAL_REVIEW_REQUIRED,
     STRENGTH_SOURCE_USER_PROVIDED,
@@ -7,6 +8,14 @@ from focas_engine.strength import (
     fill_strength_context,
 )
 from focas_engine.models import StrengthContext
+
+
+def test_grade_ladder_uses_half_grade_scale():
+    assert GRADE_SCORE["下游"] == 0.0
+    assert GRADE_SCORE["中下"] == 0.5
+    assert GRADE_SCORE["中游"] == 1.0
+    assert GRADE_SCORE["中上"] == 1.5
+    assert GRADE_SCORE["人强"] == 3.5
 
 
 def test_rank_parser_prefers_ordinal_rank_over_date_year():
