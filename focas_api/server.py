@@ -15,7 +15,7 @@ MAX_BODY_BYTES = 2 * 1024 * 1024
 
 
 class FocasApiHandler(BaseHTTPRequestHandler):
-    server_version = "FOCAS-API/1.1.5"
+    server_version = "FOCAS-API/1.2-R"
 
     def _write_text(self, status: int, body: str, content_type: str) -> None:
         data = body.encode("utf-8")
@@ -50,7 +50,7 @@ class FocasApiHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
-            self._write_json(200, {"status": "ok", "service": "focas-api", "engine_version": "1.1.5"})
+            self._write_json(200, {"status": "ok", "service": "focas-api", "engine_version": "1.2-R"})
             return
         if self.path == "/openapi.yaml":
             schema_path = Path(__file__).with_name("openapi.yaml")
@@ -59,7 +59,7 @@ class FocasApiHandler(BaseHTTPRequestHandler):
         self._write_json(404, {"error": "not_found"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/v1/analyze":
+        if self.path not in {"/analyzeFocasMatch", "/v1/analyze"}:
             self._write_json(404, {"error": "not_found"})
             return
         if not self._authorized():

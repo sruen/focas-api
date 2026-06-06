@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -38,13 +38,18 @@ class LoadedInput:
 def _team(data: dict[str, Any] | None) -> TeamContext | None:
     if data is None:
         return None
-    return TeamContext(**data)
+    return TeamContext(**_known_fields(TeamContext, data))
 
 
 def _h2h(data: dict[str, Any] | None) -> H2HContext | None:
     if data is None:
         return None
-    return H2HContext(**data)
+    return H2HContext(**_known_fields(H2HContext, data))
+
+
+def _known_fields(cls: type, data: dict[str, Any]) -> dict[str, Any]:
+    allowed = {item.name for item in fields(cls)}
+    return {key: value for key, value in data.items() if key in allowed}
 
 
 def _snapshot(data: dict[str, Any]) -> OddsSnapshot:
@@ -166,9 +171,9 @@ def parse_raw_input(raw: dict[str, Any], *, diagnostics: list[PackageDiagnostic]
         away=_team(raw.get("away_context")),
         h2h=_h2h(raw.get("h2h")),
     )
-    strength = StrengthContext(**raw.get("strength", {}))
-    pulls = [NaturalPull(**p) for p in raw.get("natural_pulls", [])]
-    narrative_materials = [NarrativeMaterial(**p) for p in raw.get("narrative_materials", [])]
+    strength = StrengthContext(**_known_fields(StrengthContext, raw.get("strength", {})))
+    pulls = [NaturalPull(**_known_fields(NaturalPull, p)) for p in raw.get("natural_pulls", [])]
+    narrative_materials = [NarrativeMaterial(**_known_fields(NarrativeMaterial, p)) for p in raw.get("narrative_materials", [])]
     book_mode = OriginalBookMode(**raw.get("original_book_mode", {}))
     odds = [
         CompanyOdds(

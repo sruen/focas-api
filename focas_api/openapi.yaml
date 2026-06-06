@@ -1,16 +1,16 @@
 openapi: 3.1.0
 info:
-  title: FOCAS Evidence API
-  version: 1.1.5
-  description: FOCAS backend evidence provider. It returns odds, skeleton, topic, movement, and scenario audit data only. It does not return a home/draw/away result tendency.
+  title: FOCAS Backend API Contract v1.2-R
+  version: 1.2-R
+  description: 后端只返回 evidence pack，不输出最终方向、投注建议或赛果倾向。
 servers:
   - url: https://focas-api.onrender.com
 paths:
-  /v1/analyze:
+  /analyzeFocasMatch:
     post:
       operationId: analyzeFocasMatch
-      summary: Build FOCAS evidence for a football match
-      description: Submit pre-match facts and odds. The response is evidence only; GPT must perform the final match analysis.
+      summary: Build FOCAS evidence pack for a football match
+      description: Submit verified pre-match facts and odds. The response is evidence only; GPT must perform final analysis independently.
       x-openai-isConsequential: false
       security:
         - FocasApiKey: []
@@ -22,7 +22,7 @@ paths:
               $ref: "#/components/schemas/FocasAnalyzeRequest"
       responses:
         "200":
-          description: FOCAS evidence response
+          description: Evidence-only response
           content:
             application/json:
               schema:
@@ -58,9 +58,13 @@ components:
       properties:
         include_report:
           type: boolean
-          description: Set true only when a long markdown report is needed.
+          description: 可选；默认 false。v1.2-R 后端不生成最终方向报告。
         match:
           $ref: "#/components/schemas/Match"
+        information_quality:
+          $ref: "#/components/schemas/InformationQuality"
+        source_reliability:
+          $ref: "#/components/schemas/SourceReliability"
         home_context:
           $ref: "#/components/schemas/TeamContext"
         away_context:
@@ -73,12 +77,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/NaturalPull"
+        distribution_lock:
+          $ref: "#/components/schemas/DistributionLock"
         narrative_materials:
           type: array
           items:
             $ref: "#/components/schemas/NarrativeMaterial"
-        original_book_mode:
-          $ref: "#/components/schemas/OriginalBookMode"
         odds:
           type: array
           minItems: 3
@@ -101,36 +105,81 @@ components:
           type: string
         stage:
           type: string
-          description: Match stage, for example International friendly, group stage, league round, semi-final, or final.
+          description: 联赛/杯赛/友谊赛/淘汰赛/小组赛等。
         match_stage:
           type: string
-          description: Alias for stage.
+          description: stage 的别名。
         neutral_venue:
           type: boolean
-        single_leg:
-          type: boolean
-          description: Whether this match is a single-leg match. Friendlies should normally be true.
-        single_match:
-          type: boolean
-          description: Alias for single_leg.
-        match_type:
-          type: string
-        extra_time_or_penalties:
-          type: string
-          description: Extra-time or penalty rules. For friendlies use no extra time or penalties, 90 minutes only.
-        extra_time_rule:
-          type: string
-          description: Alias for extra_time_or_penalties.
-        penalty_rule:
-          type: string
-          description: Penalty shootout rule.
-        result_scope:
-          type: string
-          description: Result settlement scope, for example 90 minutes only.
         real_home_away:
           type: boolean
-        attention_level:
+        result_scope:
           type: string
+          description: 90分钟/含加时/含点球。
+        single_leg:
+          type: boolean
+        single_match:
+          type: boolean
+        extra_time_or_penalties:
+          type: string
+        extra_time_rule:
+          type: string
+        penalty_rule:
+          type: string
+        match_type:
+          type: string
+        information_updated_at:
+          type: string
+      additionalProperties: true
+    InformationQuality:
+      type: object
+      properties:
+        overall_rating:
+          type: string
+          enum: [A, B, C, D]
+        source_time_range:
+          type: string
+        missing_core_info:
+          type: array
+          items:
+            type: string
+        low_confidence_items:
+          type: array
+          items:
+            type: string
+        downgrade_reason:
+          type: string
+        analysis_allowed:
+          type: boolean
+      additionalProperties: true
+    ReliabilityItem:
+      type: object
+      properties:
+        source:
+          type: string
+        time:
+          type: string
+        reliability:
+          type: string
+          enum: [已确认, 较可信, 待确认, 低可信]
+      additionalProperties: true
+    SourceReliability:
+      type: object
+      properties:
+        rank_points:
+          $ref: "#/components/schemas/ReliabilityItem"
+        recent_form:
+          $ref: "#/components/schemas/ReliabilityItem"
+        home_away:
+          $ref: "#/components/schemas/ReliabilityItem"
+        injuries:
+          $ref: "#/components/schemas/ReliabilityItem"
+        motivation_schedule:
+          $ref: "#/components/schemas/ReliabilityItem"
+        h2h:
+          $ref: "#/components/schemas/ReliabilityItem"
+        tactical_style:
+          $ref: "#/components/schemas/ReliabilityItem"
       additionalProperties: true
     TeamContext:
       type: object
@@ -147,6 +196,10 @@ components:
           type: array
           items:
             type: string
+        recent_record_summary:
+          type: string
+        recent_goals_for_against:
+          type: string
         venue_adaptation:
           type: string
         attack_state:
@@ -161,7 +214,7 @@ components:
           type: string
         popularity_story:
           type: string
-        major_recent_matches:
+        tactical_style:
           type: string
       additionalProperties: true
     H2HContext:
@@ -175,39 +228,28 @@ components:
           type: string
         venue_specific:
           type: string
-        latest_key_match:
-          type: string
         market_psychology:
           type: string
       additionalProperties: true
     StrengthContext:
       type: object
-      description: Broad-strength input. Use only the fixed FOCAS grade ladder; adjacent grades differ by 0.5 grade. Do not invent labels such as strong team, weak team, giant, or underdog.
+      description: 只能使用固定档位梯子；相邻档位差0.5档，不是1档。
       properties:
         home_grade:
           type: string
-          description: "Home broad-strength grade. Allowed values only: 下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强."
+          enum: [下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强]
         away_grade:
           type: string
-          description: "Away broad-strength grade. Allowed values only: 下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强."
+          enum: [下游, 中下, 中游, 中上, 中强, 准强, 普强, 人强]
         static_gap:
           type: string
-          description: "Static grade relation before dynamic correction. Adjacent grade levels differ by 0.5档; examples: 主队高0.5档, 客队高一档, 主队高3.5档, 双方同档."
+          description: 静态档差，例如主队高0.5档、客队高一档、双方同档。
         dynamic_adjustment:
           type: string
-          description: "Dynamic correction from venue, injuries, schedule, motivation, or matchup, for example 中立场削弱主队0.5档."
         final_gap:
           type: string
-          description: "Final dynamic relation after correction, for example 主队高0.5档, 主队高一档, 主队高1.5档, 客队高一档, 客队高0.5档, 双方同档. The backend maps this to p4_strength_key and then to the skeleton interval bridge table."
-        original_distribution:
-          type: string
-        theoretical_psychological_interval:
-          type: string
-        theoretical_home_odds_range:
-          type: string
-        theoretical_draw_odds_reference:
-          type: string
-        theoretical_away_odds_reference:
+          description: 动态修正后档差。后端据此桥接 p4_strength_key 与骨架区间。
+        uncertainty:
           type: string
       additionalProperties: true
     NaturalPull:
@@ -217,18 +259,44 @@ components:
       properties:
         direction:
           type: string
-          description: Use one of home, draw, away, or Chinese equivalents.
+          enum: [home, draw, away, 主胜, 平局, 客胜]
+        pull_score:
+          type: string
+          description: -2/-1/0/+1/+2
         strength:
           type: string
+          enum: [强, 中, 弱]
         facts:
           type: string
-        market_psychology:
+        market_visibility:
           type: string
-        popularity_direction:
+          enum: [高, 中, 低]
+        source_reliability:
           type: string
+          enum: [已确认, 较可信, 待确认, 低可信]
         easy_to_receive:
           type: boolean
-        first_eye_direction:
+      additionalProperties: true
+    DistributionLock:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [顺分布, 逆分布, 中庸分布, 缓冲分布]
+        home_pull:
+          type: string
+        draw_pull:
+          type: string
+        away_pull:
+          type: string
+        locked_before_odds:
+          type: boolean
+        lock_confidence:
+          type: string
+          enum: [高, 中, 低]
+        main_uncertainty:
+          type: string
+        cannot_reverse_by_odds_only:
           type: boolean
       additionalProperties: true
     NarrativeMaterial:
@@ -239,10 +307,10 @@ components:
       properties:
         direction:
           type: string
+          enum: [home, draw, away, 主胜, 平局, 客胜]
         topic:
           type: string
-        category:
-          type: string
+          description: 近况/伤停/战意/赛程/往绩/排名/主客场/战术
         facts:
           type: string
         source:
@@ -251,32 +319,16 @@ components:
           type: string
         visibility:
           type: string
+          enum: [高, 中, 低]
         strength:
           type: string
+          enum: [强, 中, 弱]
+        reliability:
+          type: string
+          enum: [已确认, 较可信, 待确认, 低可信]
         institution_use_status:
           type: string
-        institution_use_evidence:
-          type: array
-          items:
-            type: string
-        utilization_mode:
-          type: string
-      additionalProperties: true
-    OriginalBookMode:
-      type: object
-      properties:
-        mode:
-          type: string
-        reason:
-          type: string
-        key_odds_to_watch:
-          type: string
-        easiest_misread:
-          type: string
-        source_classification:
-          type: array
-          items:
-            type: string
+          enum: [可用, 待确认, 低可信不用]
       additionalProperties: true
     CompanyOdds:
       type: object
@@ -287,11 +339,18 @@ components:
       properties:
         company:
           type: string
-          description: William, Ladbrokes, Avg, or another company name if supported.
+          description: William/Ladbrokes/Avg/BetVictor/other
+        role:
+          type: string
+          enum: [core, auxiliary]
         initial:
           $ref: "#/components/schemas/OddsSnapshot"
         current:
           $ref: "#/components/schemas/OddsSnapshot"
+        path:
+          type: array
+          items:
+            $ref: "#/components/schemas/OddsPathPoint"
       additionalProperties: true
     OddsSnapshot:
       type: object
@@ -307,6 +366,18 @@ components:
         away:
           type: number
       additionalProperties: false
+    OddsPathPoint:
+      type: object
+      properties:
+        time:
+          type: string
+        home:
+          type: number
+        draw:
+          type: number
+        away:
+          type: number
+      additionalProperties: true
     FocasAnalyzeResponse:
       type: object
       properties:
@@ -314,58 +385,41 @@ components:
           type: string
         engine_version:
           type: string
-        analysis_contract:
-          $ref: "#/components/schemas/AuditObject"
-        match:
-          $ref: "#/components/schemas/AuditObject"
-        status:
-          $ref: "#/components/schemas/AuditObject"
-        expected_opening_interval:
-          $ref: "#/components/schemas/AuditObject"
-        system_routes:
-          type: array
-          items:
-            $ref: "#/components/schemas/AuditObject"
-        skeleton_system_audit:
-          type: array
-          items:
-            $ref: "#/components/schemas/AuditObject"
-        opening_skeleton_audits:
-          type: array
-          items:
-            $ref: "#/components/schemas/AuditObject"
-        psychological_interval_audit:
-          $ref: "#/components/schemas/AuditObject"
-        opening_board_audit:
-          $ref: "#/components/schemas/AuditObject"
-        opening_anchor_audit:
-          $ref: "#/components/schemas/AuditObject"
-        movement_authority_audit:
-          $ref: "#/components/schemas/AuditObject"
-        fundamental_topic_audit:
-          $ref: "#/components/schemas/AuditObject"
-        market_pull_audit:
-          $ref: "#/components/schemas/AuditObject"
-        optimal_solution_audit:
-          $ref: "#/components/schemas/AuditObject"
-        bookmaker_topic_usage_audit:
-          $ref: "#/components/schemas/AuditObject"
-        engine_suggestion:
-          $ref: "#/components/schemas/AuditObject"
-        final_structure_judgement:
-          $ref: "#/components/schemas/AuditObject"
-        opening_motive_chain:
-          type: array
-          items:
-            $ref: "#/components/schemas/AuditObject"
-        narrative_audit:
-          $ref: "#/components/schemas/AuditObject"
-        scenario_audit:
-          $ref: "#/components/schemas/AuditObject"
-        notes:
+        backend_scope:
+          type: string
+          enum: [evidence_only_no_final_direction]
+        forbidden_fields:
           type: array
           items:
             type: string
+        backend_rules:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/AuditObject"
+        match:
+          $ref: "#/components/schemas/AuditObject"
+        information_quality_flags:
+          $ref: "#/components/schemas/AuditObject"
+        source_reliability_echo:
+          $ref: "#/components/schemas/AuditObject"
+        distribution_lock_echo:
+          $ref: "#/components/schemas/AuditObject"
+        skeleton_route:
+          $ref: "#/components/schemas/AuditObject"
+        theoretical_ranges:
+          $ref: "#/components/schemas/AuditObject"
+        initial_odds_audit:
+          $ref: "#/components/schemas/AuditObject"
+        movement_pack:
+          $ref: "#/components/schemas/AuditObject"
+        movement_authority_audit:
+          $ref: "#/components/schemas/AuditObject"
+        scenario_evidence_pack:
+          $ref: "#/components/schemas/AuditObject"
+        evidence_appendix:
+          $ref: "#/components/schemas/AuditObject"
         report_markdown:
           type: string
       additionalProperties: true

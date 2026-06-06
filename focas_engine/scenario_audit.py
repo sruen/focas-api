@@ -57,8 +57,8 @@ def build_scenario_audit(*, result) -> ScenarioAuditResult:
         notes.append("No scenario completed the formal evidence chain. Structural lean is observation-only.")
     if getattr(result.narrative_audit, "review_required", False):
         notes.append("Narrative source-level audit is incomplete.")
-    if result.skeleton_scope_status != "HOME_AXIS_PRECISE":
-        notes.append("Skeleton workbook is home-axis precise only. Draw/away remain combination references.")
+    if result.skeleton_scope_status != "LOW_ODDS_AXIS_PRECISE":
+        notes.append("Skeleton workbook low-odds axis status needs review.")
     return ScenarioAuditResult(
         scenarios=scenarios,
         main_scenario=main,

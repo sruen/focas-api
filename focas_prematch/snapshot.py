@@ -150,8 +150,8 @@ def build_prematch_snapshot(loaded: LoadedInput, result: Any) -> PrematchSnapsho
     evidence_gaps = list(result.missing_fields)
     if result.narrative_audit and result.narrative_audit.review_required:
         evidence_gaps.append("三项题材来源级审计不完整")
-    if result.skeleton_scope_status != "HOME_AXIS_PRECISE":
-        evidence_gaps.append("当前赔率形态超出主赔精确轴，平赔或客赔只能作为组合参考")
+    if result.skeleton_scope_status != "LOW_ODDS_AXIS_PRECISE":
+        evidence_gaps.append("当前低赔骨架轴读取状态需要复核")
     snapshot = PrematchSnapshot.from_dict(
         {
             "schema_version": "0.2",

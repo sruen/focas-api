@@ -202,21 +202,11 @@ class FocasPipeline:
         hard_companies = {"威廉", "立博", "William", "Ladbrokes"}
         result.table_results = [item for item in all_low_results if item.company in hard_companies]
         result.notes.extend(result.odds_coordinates.notes)
-        non_home_low = [
-            coordinate
-            for coordinate in result.odds_coordinates.coordinates
-            if coordinate.direction != "主胜"
-        ]
-        result.skeleton_scope_status = (
-            "HOME_AXIS_PRECISE"
-            if not non_home_low
-            else "HOME_AXIS_ONLY_REVIEW_REQUIRED"
+        result.skeleton_scope_status = "LOW_ODDS_AXIS_PRECISE"
+        result.notes.append(
+            "SKELETON_SCOPE = LOW_ODDS_AXIS_PRECISE: the workbook column historically named 主赔_骨架精确 is used as the low-odds axis. "
+            "When away is the lowest price, away odds are routed into the same low-odds axis; it is not a home-win-only axis."
         )
-        if non_home_low:
-            result.notes.append(
-                "SKELETON_SCOPE = HOME_AXIS_ONLY_REVIEW_REQUIRED: "
-                "draw/away low cases remain combination references and cannot be treated as precise directional skeletons."
-            )
 
         result.interval_audit = audit_opening_interval(
             strength=strength,
@@ -321,111 +311,13 @@ class FocasPipeline:
             optimal_solution_audit=result.optimal_solution_audit,
             opening_board_audit=result.opening_board_audit,
         )
-        result.final_structure_judgement = build_final_structure_judgement(
-            optimal_solution_audit=result.optimal_solution_audit,
-        )
-        result.engine_suggestion = build_engine_suggestion(
-            optimal_solution_audit=result.optimal_solution_audit,
-            opening_anchor_audit=result.opening_anchor_audit,
-            movement_authority_audit=result.movement_authority_audit,
-        )
-
-        # Stage 10: synthesize the full reasoning chain. Summary statuses are last, not first.
-        result.integrated_structure = integrated_structure_judgement(
-            strength=strength,
-            pulls=pulls,
-            original_distribution=result.original_distribution,
-            book_mode=book_mode,
-            odds_coordinates=result.odds_coordinates,
-            interval_audit=result.interval_audit,
-            stage_9=result.stage_9_analysis,
-        )
-        result.direction_judgements = result.integrated_structure.summary_status
-        result.final_direction, note = select_final_direction(result.direction_judgements)
-        result.notes.append(note)
-
-        adverse_count = len(result.integrated_structure.adverse_excluded_directions)
-        if result.final_direction is None and adverse_count <= 1:
-            relative = select_relative_mainline(
-                judgements=result.direction_judgements,
-                strength=strength,
-                pulls=pulls,
-                book_mode=book_mode,
-                table_results=result.table_results,
-                motive_readings=result.motive_readings,
-                match=match,
-                p1_core=result.p1_core,
-                company_semantics=result.company_semantics,
-                interval_audit=result.interval_audit,
-                original_distribution=result.original_distribution,
-                opening_motive_readings=result.stage_9_analysis.opening_motive_chain,
-            )
-            result.relative_selection = relative
-            result.structural_lean = relative.selected_direction or None
-            result.integrated_structure.relative_weaker_directions = list(relative.relative_non_selected)
-            result.notes.append(
-                f"第二阶段相对主线选择：{relative.selected_direction}｜置信度={relative.confidence}。"
-                "相对弱不等于不利排除。"
-            )
-
-        decision_warnings: list[str] = []
-        if result.final_direction is None:
-            if result.structural_lean:
-                decision_warnings.append("no complete two-adverse directional chain; using relative structural lean")
-            else:
-                decision_warnings.append("no complete directional evidence chain")
-        if result.expected_interval_status != "CONFIRMED":
-            decision_warnings.append("theoretical skeleton interval requires review")
-        if result.skeleton_scope_status != "HOME_AXIS_PRECISE":
-            decision_warnings.append("skeleton workbook is home-axis precise only for this odds shape")
-        if result.narrative_audit.review_required:
-            decision_warnings.append("source-level three-direction narrative audit is incomplete")
-
-        if result.final_direction:
-            result.decision_status = "EXECUTE" if not decision_warnings else "LEAN"
-            result.mainline_output_status = "ALLOWED" if not decision_warnings else "ALLOWED_WITH_CAUTION"
-        elif result.structural_lean:
-            result.final_direction = result.structural_lean
-            result.decision_status = "LEAN"
-            result.mainline_output_status = "ALLOWED_WITH_CAUTION"
-            result.notes.append(
-                "Structural LEAN: relative mainline selected; final PASS gate is disabled for analysis mode."
-            )
-        else:
-            result.final_direction = "PASS"
-            result.decision_status = "PASS"
-            result.mainline_output_status = "PASS"
-            result.notes.append("No selectable structural lean was produced.")
-        if decision_warnings:
-            result.notes.append("Decision warnings: " + "; ".join(decision_warnings))
-        if result.final_structure_judgement:
-            judgement = result.final_structure_judgement
-            result.notes.append(
-                f"Compatibility final_structure_judgement layer: {judgement.status}"
-                + (f"｜direction={judgement.direction}" if judgement.direction else "")
-                + f"｜reason={judgement.reason}"
-            )
-            result.notes.append(
-                "Backend evidence-only mode: GPT must audit opening_anchor_audit, "
-                "movement_authority_audit, topic usage, and contradictions before any judgement."
-            )
-            if False and judgement.status == "EXECUTE" and judgement.direction:
-                result.final_direction = judgement.direction
-                result.decision_status = "EXECUTE"
-                result.mainline_output_status = "ALLOWED"
-            elif False and judgement.status == "BETTER_SOLUTION_ONLY" and judgement.direction:
-                result.final_direction = judgement.direction
-                result.decision_status = "BETTER_SOLUTION_ONLY"
-                result.mainline_output_status = "ALLOWED_WITH_CAUTION"
-            elif False and judgement.status in {"NO_OPTIMAL_SOLUTION", "NO_BET_STRUCTURE"}:
-                result.final_direction = "NO_BET"
-                result.decision_status = judgement.status
-                result.mainline_output_status = "NO_BET_STRUCTURE"
         result.report_mode = "FULL_REPORT"
-        result.scenario_audit = build_scenario_audit(result=result)
         result.notes.append(
-            "Backend result tendency is disabled. final_direction and structural_lean are not exported as analysis conclusions."
+            "Backend result tendency is disabled by API contract v1.2-R. The backend returns evidence only; GPT performs the final analysis."
         )
+        result.final_structure_judgement = None
+        result.engine_suggestion = None
+        result.scenario_audit = None
         result.final_direction = None
         result.structural_lean = None
         result.decision_status = "EVIDENCE_ONLY"

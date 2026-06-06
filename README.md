@@ -27,7 +27,7 @@ python -m focas_prematch.cli analyze \
 - `natural_pulls` 仍兼容旧输入，但只视为聚合题材。没有逐条来源时，正式结论必须降级为 `PASS` 或 `OBSERVE`。
 - 新输入可增加 `narrative_materials`。主胜、平局、客胜都应提供至少一条题材，并记录 `topic`、`facts`、`source`、`published_at`、`visibility`、`strength`、`strength_alignment`。
 - 题材存在不等于影响市场；影响市场不等于机构已经利用；机构利用题材不等于该赛果必然兑现。
-- 当前现代骨架表只有主赔精确轴。平赔或客赔成为最低项时，程序保留组合参考并输出 `HOME_AXIS_ONLY_REVIEW_REQUIRED`，不得冒充三项精确骨架。
+- 当前现代骨架表按低赔精确轴读取。表内历史列名 `主赔_骨架精确` 在程序中解释为低赔轴，不是主胜轴；当客胜为最低赔率时，客胜赔率进入低赔轴审计。
 
 示例：
 
@@ -155,7 +155,7 @@ python -m focas_engine.cli examples/valid_complete_match_input.json \
 - William 与 Ladbrokes 必须先完成 `ReturnRateSystemGate` 再按实际 89-96 体系 sheet 查表。Avg 只进入市场背景层。
 - 联赛、杯赛、国家队和中立场属性只参与语义修正，不参与现代骨架查表准入。
 - P4 理论区间来自 `focas_engine/data/p4_strength_interval_table.csv` 内置 strength interval bridge。现实赔率落点来自新版 xlsx，二者不得混写。
-- 初赔合理性审计是机构动机判断的前置硬步骤：先按 William / Ladbrokes 各自初赔返还率识别 89-96 体系，再从该体系 sheet 读取 P4 理论区间的主赔精确范围和平负档口参考范围，最后比较机构发布的原始初赔。赔率数值不做二次转换；返还率差异已经体现在各体系骨架表中。骨架缺失或不可调用时，机构动机必须标记复核，不得猜测。
+- 初赔合理性审计是机构动机判断的前置硬步骤：先按 William / Ladbrokes 各自初赔返还率识别 89-96 体系，再从该体系 sheet 读取 P4 理论区间的低赔精确范围和另外两项档口参考范围，最后比较机构发布的原始初赔。赔率数值不做二次转换；返还率差异已经体现在各体系骨架表中。骨架缺失或不可调用时，机构动机必须标记复核，不得猜测。
 - P4 桥接键缺失时标记 `EXPECTED_INTERVAL_STATUS = REVIEW_REQUIRED`；已经成立的 William / Ladbrokes 新版 xlsx 现实归位仍保留。
 - 抬高 / 拉低只是动作，必须经过信心承载、分散有效性、自然拉力、表内区间和公司目的五道门。
 - 初赔必须先结合基本面、广义实力、原始分布、P4 理论区间和主客场拉力解释。双公司初赔若对同一方向形成利诱 / 过热候选，后续没有双公司反转确认时，不得仅凭基本面高分把该方向重新选回最终结构方向。
@@ -188,7 +188,7 @@ curl http://127.0.0.1:8787/health
 分析接口：
 
 ```text
-POST /v1/analyze
+POST /analyzeFocasMatch
 Authorization: Bearer replace-with-a-long-random-secret
 Content-Type: application/json
 ```

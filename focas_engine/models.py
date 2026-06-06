@@ -810,7 +810,7 @@ class PipelineResult:
     engine_suggestion: Optional[EngineSuggestion] = None
     decision_status: str = "PASS"
     structural_lean: Optional[str] = None
-    skeleton_scope_status: str = "HOME_AXIS_ONLY"
+    skeleton_scope_status: str = "LOW_ODDS_AXIS_PRECISE"
     stop: bool = False
     stop_reason: Optional[str] = None
     final_direction: Optional[str] = None
