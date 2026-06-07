@@ -85,7 +85,7 @@ components:
             $ref: "#/components/schemas/NarrativeMaterial"
         odds:
           type: array
-          minItems: 3
+          minItems: 2
           items:
             $ref: "#/components/schemas/CompanyOdds"
       additionalProperties: true
@@ -113,6 +113,9 @@ components:
           type: boolean
         real_home_away:
           type: boolean
+        attention_level:
+          type: string
+          description: 赛事关注度/受注关注度；可写“国家队友谊赛，中高关注，需要GPT复核”等。
         result_scope:
           type: string
           description: 90分钟/含加时/含点球。
@@ -214,6 +217,17 @@ components:
           type: string
         popularity_story:
           type: string
+        major_recent_matches:
+          type: string
+          description: 近期重大比赛表现；如未单独填写，后端会从 recent_matches 自动归纳并降级复核。
+        major_recent_match:
+          type: string
+        major_recent_match_signal:
+          type: string
+        key_recent_match:
+          type: string
+        key_recent_matches:
+          type: string
         tactical_style:
           type: string
       additionalProperties: true
@@ -227,6 +241,15 @@ components:
         same_competition:
           type: string
         venue_specific:
+          type: string
+        latest_key_match:
+          type: string
+          description: 最近一次关键交锋；可由GPT从往绩材料归纳。
+        latest_key_h2h:
+          type: string
+        key_match:
+          type: string
+        recent_key_match:
           type: string
         market_psychology:
           type: string
