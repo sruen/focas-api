@@ -1,7 +1,7 @@
 import zipfile
 from pathlib import Path
 
-from focas_engine.match_package_loader import load_package
+from focas_engine.match_package_loader import HISTORICAL_ODDS_CSV_FIELDS, load_package
 
 
 def test_structured_zgzcw_csv_package(tmp_path: Path):
@@ -38,3 +38,27 @@ def test_structured_zgzcw_csv_package(tmp_path: Path):
     assert by_company["Avg"]["current"] == {"home": 1.59, "draw": 3.83, "away": 5.11}
     assert by_company["BetVictor"]["initial"] == {"home": 1.6, "draw": 3.7, "away": 5.0}
     assert by_company["BetVictor"]["current"] == {"home": 1.57, "draw": 3.75, "away": 5.25}
+
+    rows = result.historical_odds_rows
+    assert len(rows) == 8
+    assert set(rows[0]) == set(HISTORICAL_ODDS_CSV_FIELDS)
+    william_initial = next(r for r in rows if r["公司"] == "William" and r["快照类型"] == "initial")
+    ladbrokes_initial = next(r for r in rows if r["公司"] == "Ladbrokes" and r["快照类型"] == "initial")
+    avg_initial = next(r for r in rows if r["公司"] == "Avg" and r["快照类型"] == "initial")
+    betvictor_initial = next(r for r in rows if r["公司"] == "BetVictor" and r["快照类型"] == "initial")
+    assert william_initial["公司角色"] == "core"
+    assert ladbrokes_initial["公司角色"] == "core"
+    assert avg_initial["公司角色"] == "auxiliary"
+    assert betvictor_initial["公司角色"] == "auxiliary"
+    assert william_initial["主胜赔率"] == 1.57
+    assert william_initial["平局赔率"] == 3.8
+    assert william_initial["客胜赔率"] == 5.0
+    assert william_initial["源字段"] == "William_Source:opening_home/opening_draw/opening_away"
+    assert isinstance(william_initial["返还率"], float)
+    assert william_initial["体系"]
+
+    out_csv = tmp_path / "historical_odds.csv"
+    result.write_historical_odds_csv(out_csv)
+    text = out_csv.read_text(encoding="utf-8-sig")
+    assert "赛事类型,日期,赛季,联赛,主队,客队,公司,公司角色,快照类型,主胜赔率,平局赔率,客胜赔率,返还率,体系,体系标注,源字段" in text
+    assert "William,core,initial,1.57,3.8,5.0" in text
