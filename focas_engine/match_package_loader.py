@@ -78,10 +78,126 @@ class PackageLoadResult:
     raw: dict[str, Any]
     diagnostics: list[PackageDiagnostic] = field(default_factory=list)
     source_files: list[str] = field(default_factory=list)
+    historical_odds_rows: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def used_canonical_json(self) -> bool:
         return any("标准JSON" in d.message for d in self.diagnostics)
+
+    def write_historical_odds_csv(self, path: str | Path) -> None:
+        write_historical_odds_csv(self.historical_odds_rows, path)
+
+
+HISTORICAL_ODDS_CSV_FIELDS = [
+    "赛事类型",
+    "日期",
+    "赛季",
+    "联赛",
+    "主队",
+    "客队",
+    "公司",
+    "公司角色",
+    "快照类型",
+    "主胜赔率",
+    "平局赔率",
+    "客胜赔率",
+    "返还率",
+    "体系",
+    "体系标注",
+    "源字段",
+]
+
+CORE_COMPANIES = {"William", "Ladbrokes"}
+AUXILIARY_COMPANIES = {"Avg", "BetVictor"}
+
+
+def _company_role(company: str) -> str:
+    if company in CORE_COMPANIES:
+        return "core"
+    if company in AUXILIARY_COMPANIES:
+        return "auxiliary"
+    return "ignored"
+
+
+def _payout_rate_from_values(home: float, draw: float, away: float) -> float:
+    implied = (1.0 / home) + (1.0 / draw) + (1.0 / away)
+    return 100.0 / implied
+
+
+def _system_from_return_rate(rate: float) -> tuple[str, str]:
+    rounded = int(round(rate))
+    if 89 <= rounded <= 96:
+        return f"{rounded}系", "89-96体系内，按返还率四舍五入路由"
+    if rounded < 89:
+        return "低于89系", "低于89-96表域，不能精确查表"
+    return "高于96系", "高于89-96表域，不能精确查表"
+
+
+def _date_part(value: Any) -> str:
+    text = str(value or "").strip()
+    match = re.search(r"\d{4}[-/]\d{1,2}[-/]\d{1,2}", text)
+    if match:
+        return match.group(0).replace("/", "-")
+    return text
+
+
+def _snapshot_source_field(odds_item: dict[str, Any], snapshot_type: str) -> str:
+    fields = odds_item.get("source_fields") or {}
+    value = fields.get(snapshot_type)
+    if value:
+        return str(value)
+    return f"odds.{snapshot_type}.home/draw/away"
+
+
+def build_historical_odds_csv_rows(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build one normalized CSV row per company snapshot without mixing companies."""
+    match = raw.get("match") or {}
+    rows: list[dict[str, Any]] = []
+    base = {
+        "赛事类型": match.get("match_type") or match.get("competition") or "",
+        "日期": _date_part(match.get("match_date") or match.get("kickoff_time")),
+        "赛季": match.get("season") or "",
+        "联赛": match.get("league_for_table") or match.get("competition") or "",
+        "主队": match.get("home_team") or "",
+        "客队": match.get("away_team") or "",
+    }
+    for item in raw.get("odds") or []:
+        company = str(item.get("company") or "").strip()
+        if not company:
+            continue
+        for snapshot_type in ("initial", "current"):
+            snapshot = item.get(snapshot_type) or {}
+            home = _to_float(snapshot.get("home"))
+            draw = _to_float(snapshot.get("draw"))
+            away = _to_float(snapshot.get("away"))
+            if home is None or draw is None or away is None:
+                continue
+            return_rate = round(_payout_rate_from_values(home, draw, away), 6)
+            system, system_label = _system_from_return_rate(return_rate)
+            rows.append({
+                **base,
+                "公司": company,
+                "公司角色": _company_role(company),
+                "快照类型": snapshot_type,
+                "主胜赔率": home,
+                "平局赔率": draw,
+                "客胜赔率": away,
+                "返还率": return_rate,
+                "体系": system,
+                "体系标注": system_label,
+                "源字段": _snapshot_source_field(item, snapshot_type),
+            })
+    return rows
+
+
+def write_historical_odds_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=HISTORICAL_ODDS_CSV_FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
 
 
 def _empty_raw() -> dict[str, Any]:
@@ -356,6 +472,10 @@ def extract_odds(text: str) -> list[dict[str, Any]]:
             "company": company,
             "initial": {"home": initial[0], "draw": initial[1], "away": initial[2]},
             "current": {"home": current[0], "draw": current[1], "away": current[2]},
+            "source_fields": {
+                "initial": "text.initial.home/draw/away",
+                "current": "text.current.home/draw/away",
+            },
         })
     return out
 
@@ -376,7 +496,10 @@ def _set_match_from_metadata(raw: dict[str, Any], rows: list[dict[str, str]], di
     if league:
         raw["match"]["competition"] = str(league).strip()
         raw["match"]["league_for_table"] = str(league).strip()
+    if row.get("season"):
+        raw["match"]["season"] = str(row.get("season")).strip()
     if row.get("match_date"):
+        raw["match"]["match_date"] = str(row.get("match_date")).strip()
         raw["match"]["kickoff_time"] = str(row.get("match_date")).strip()
     diagnostics.append(PackageDiagnostic("INFO", "已从 match_metadata.csv 精准读取比赛双方与赛事字段。", file_name))
 
@@ -402,6 +525,10 @@ def _odds_from_opening_closing(rows: list[dict[str, str]], diagnostics: list[Pac
             "company": company,
             "initial": {"home": nums[0], "draw": nums[1], "away": nums[2]},
             "current": {"home": nums[3], "draw": nums[4], "away": nums[5]},
+            "source_fields": {
+                "initial": f"{target}:opening_home/opening_draw/opening_away",
+                "current": f"{target}:closing_home/closing_draw/closing_away",
+            },
         })
     if out:
         diagnostics.append(PackageDiagnostic("INFO", f"已从 opening_closing.csv 精准读取赔率公司：{', '.join(o['company'] for o in out)}。", file_name))
@@ -423,6 +550,10 @@ def _avg_from_text(text: str) -> dict[str, Any] | None:
                 "company": "Avg",
                 "initial": {"home": nums[0], "draw": nums[1], "away": nums[2]},
                 "current": {"home": nums[3], "draw": nums[4], "away": nums[5]},
+                "source_fields": {
+                    "initial": "avg_text:initial_home/initial_draw/initial_away",
+                    "current": "avg_text:current_home/current_draw/current_away",
+                },
             }
     return None
 
@@ -480,6 +611,10 @@ def _odds_from_zgzcw_debug_files(files: list[Path], root: Path, diagnostics: lis
             "company": company,
             "initial": {"home": initial[0], "draw": initial[1], "away": initial[2]},
             "current": {"home": current[0], "draw": current[1], "away": current[2]},
+            "source_fields": {
+                "initial": f"{file.name}:oldest_debug_record.home/draw/away",
+                "current": f"{file.name}:newest_debug_record.home/draw/away",
+            },
         })
     if out:
         diagnostics.append(PackageDiagnostic("INFO", f"已从 ZGZCW debug 文本兜底读取赔率公司：{', '.join(o['company'] for o in out)}。"))
@@ -753,7 +888,12 @@ def load_package(path: str | Path) -> PackageLoadResult:
                 continue
             if is_canonical_match_json(raw):
                 diagnostics.append(PackageDiagnostic("INFO", "已使用比赛包内标准JSON输入。", str(file.relative_to(root))))
-                return PackageLoadResult(raw=raw, diagnostics=diagnostics, source_files=source_files)
+                return PackageLoadResult(
+                    raw=raw,
+                    diagnostics=diagnostics,
+                    source_files=source_files,
+                    historical_odds_rows=build_historical_odds_csv_rows(raw),
+                )
 
         # 2) Aggregate readable text for metadata enrichment and fallback parsing.
         chunks: list[str] = []
@@ -767,12 +907,28 @@ def load_package(path: str | Path) -> PackageLoadResult:
         structured_raw = build_raw_from_structured_files(files, root, aggregate_text, diagnostics)
         if structured_raw is not None:
             diagnostics.append(PackageDiagnostic("INFO", "未发现标准JSON，已根据结构化CSV生成部分标准输入；缺失项会由闸门拦截。"))
-            return PackageLoadResult(raw=structured_raw, diagnostics=diagnostics, source_files=source_files)
+            return PackageLoadResult(
+                raw=structured_raw,
+                diagnostics=diagnostics,
+                source_files=source_files,
+                historical_odds_rows=build_historical_odds_csv_rows(structured_raw),
+            )
 
         # 4) Fallback: infer from readable text.
         if not chunks:
             diagnostics.append(PackageDiagnostic("ERROR", "比赛包内没有可解析文本、CSV、Excel 或标准 JSON。"))
-            return PackageLoadResult(raw=_empty_raw(), diagnostics=diagnostics, source_files=source_files)
+            empty_raw = _empty_raw()
+            return PackageLoadResult(
+                raw=empty_raw,
+                diagnostics=diagnostics,
+                source_files=source_files,
+                historical_odds_rows=build_historical_odds_csv_rows(empty_raw),
+            )
         raw = build_raw_from_text(aggregate_text, diagnostics)
         diagnostics.append(PackageDiagnostic("INFO", "未发现标准JSON，已根据文本/表格内容生成部分标准输入；缺失项会由闸门拦截。"))
-        return PackageLoadResult(raw=raw, diagnostics=diagnostics, source_files=source_files)
+        return PackageLoadResult(
+            raw=raw,
+            diagnostics=diagnostics,
+            source_files=source_files,
+            historical_odds_rows=build_historical_odds_csv_rows(raw),
+        )
