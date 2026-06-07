@@ -9,6 +9,9 @@ description = "Integrated FOCAS pre-match, post-match fact library, and historic
 requires-python = ">=3.10"
 dependencies = ["openpyxl>=3.1.0"]
 
+[project.scripts]
+focas-export-odds-csv = "focas_engine.historical_odds_cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["focas_api*", "focas_engine*", "focas_prematch*", "focas_postmatch*", "focas_experience*", "shared*"]
