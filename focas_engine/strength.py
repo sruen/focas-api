@@ -10,6 +10,9 @@ from .models import MatchContext, StrengthContext, TeamContext
 GRADE_ORDER = ["下游", "中下", "中游", "中上", "中强", "准强", "普强", "人强"]
 GRADE_SCORE = {grade: idx * 0.5 for idx, grade in enumerate(GRADE_ORDER)}
 ALLOWED_GRADES = set(GRADE_ORDER)
+_MODERN_GRADE_ORDER = ["下游", "中下", "中游", "中上", "中强", "准强", "普强", "人强"]
+GRADE_SCORE.update({grade: idx * 0.5 for idx, grade in enumerate(_MODERN_GRADE_ORDER)})
+ALLOWED_GRADES.update(_MODERN_GRADE_ORDER)
 
 STRENGTH_SOURCE_USER_PROVIDED = "USER_PROVIDED"
 STRENGTH_SOURCE_AUTO_ESTIMATED = "AUTO_ESTIMATED"
@@ -66,6 +69,9 @@ def _parse_first_int(text: str | None) -> Optional[int]:
     if not text:
         return None
     raw = str(text)
+    modern = re.search(r"第\s*(\d+)\s*(位|名)?", raw)
+    if modern:
+        return int(modern.group(1))
     ordinal = re.search(r"第\s*(\d+)\s*位", raw)
     if ordinal:
         return int(ordinal.group(1))
