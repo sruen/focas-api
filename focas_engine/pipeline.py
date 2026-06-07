@@ -121,7 +121,11 @@ class FocasPipeline:
             result.notes.append(
                 "Strength source requires review, but filled broad-strength fields passed strength_gate; continuing into skeleton and optimal-solution audits."
             )
-        result.expected_opening_interval = expected_interval_from_table(strength=strength, estimate=estimate)
+        result.expected_opening_interval = expected_interval_from_table(
+            strength=strength,
+            estimate=estimate,
+            table_path=self.table_path,
+        )
 
         pull_gate = natural_pull_gate(pulls)
         result.gates.append(pull_gate)
