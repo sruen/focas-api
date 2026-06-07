@@ -23,7 +23,7 @@ MATCH_REQUIRED = {
     "stage": "比赛阶段",
     "neutral_venue": "是否中立场",
     "single_leg": "是否单回合",
-    "match_type": "赛事类型/决赛/淘汰赛/联赛/小组赛",
+    "match_type": "赛事类型",
     "extra_time_or_penalties": "加时/点球规则",
     "real_home_away": "主客属性是否真实存在",
     "attention_level": "赛事关注度/受注关注度",
@@ -34,7 +34,7 @@ TEAM_REQUIRED = {
     "rank": "排名",
     "points": "积分",
     "recent_matches": "近5-6场",
-    "venue_adaptation": "主场/客场/中立场适应性",
+    "venue_adaptation": "主场/客场/中立场适应",
     "attack_state": "进攻状态",
     "defense_state": "防守状态",
     "injuries": "伤停/复出/阵容完整度",
@@ -62,7 +62,7 @@ STRENGTH_REQUIRED = {
 }
 
 BOOK_MODE_REQUIRED = {
-    "mode": "本场原书模式",
+    "mode": "原书模式",
     "reason": "挂接原因",
     "key_odds_to_watch": "最需要观察的赔率项",
     "easiest_misread": "最容易误读的位置",
@@ -75,51 +75,9 @@ def _empty(value) -> bool:
     if isinstance(value, str):
         return is_placeholder_text(value)
     if isinstance(value, list):
-        # FOCAS hard gate: recent form needs at least 5 factual match records.
         if len(value) < 5:
             return True
         return bool(invalid_list_items(value))
-    return False
-
-
-def _match_rule_text(ctx: MatchContext) -> str:
-    parts = [
-        ctx.competition,
-        ctx.stage,
-        ctx.match_type,
-        ctx.extra_time_or_penalties,
-        getattr(ctx.home, "motivation", None) if ctx.home else None,
-        getattr(ctx.away, "motivation", None) if ctx.away else None,
-        getattr(ctx.home, "schedule_fatigue", None) if ctx.home else None,
-        getattr(ctx.away, "schedule_fatigue", None) if ctx.away else None,
-    ]
-    return " ".join(str(item or "") for item in parts)
-
-
-def _rule_field_inferable(ctx: MatchContext, attr: str) -> bool:
-    text = _match_rule_text(ctx)
-    friendly = any(key in text for key in ("友谊", "friendly", "Friendly", "热身"))
-    single = any(key in text for key in ("单回合", "单场", "single leg", "single-leg", "one-off", "一场定胜负"))
-    no_extra = any(
-        key in text
-        for key in (
-            "90分钟",
-            "常规时间",
-            "无加时",
-            "无加时赛",
-            "没有加时",
-            "无点球",
-            "无点球大战",
-            "no extra time",
-            "no penalties",
-        )
-    )
-    if attr == "stage":
-        return friendly or bool(ctx.match_type or ctx.competition)
-    if attr == "single_leg":
-        return friendly or single
-    if attr == "extra_time_or_penalties":
-        return friendly or no_extra
     return False
 
 
@@ -127,8 +85,6 @@ def basic_context_gate(ctx: MatchContext) -> GateResult:
     missing: list[str] = []
     for attr, label in MATCH_REQUIRED.items():
         if _empty(getattr(ctx, attr)):
-            if attr in {"stage", "single_leg", "extra_time_or_penalties"} and _rule_field_inferable(ctx, attr):
-                continue
             missing.append(label)
 
     for side_name, team in (("主队", ctx.home), ("客队", ctx.away)):
@@ -176,12 +132,18 @@ def natural_pull_gate(pulls: list[NaturalPull]) -> GateResult:
         if p is None:
             missing.append(f"{direction}自然拉力整体")
             continue
-        if _empty(p.strength): missing.append(f"{direction}强弱")
-        if _empty(p.facts): missing.append(f"{direction}事实依据")
-        if _empty(p.market_psychology): missing.append(f"{direction}市场心理")
-        if _empty(p.popularity_direction): missing.append(f"{direction}人气方向")
-        if p.easy_to_receive is None: missing.append(f"{direction}是否容易受注")
-        if p.first_eye_direction is None: missing.append(f"{direction}是否大众第一眼方向")
+        if _empty(p.strength):
+            missing.append(f"{direction}强弱")
+        if _empty(p.facts):
+            missing.append(f"{direction}事实依据")
+        if _empty(p.market_psychology):
+            missing.append(f"{direction}市场心理")
+        if _empty(p.popularity_direction):
+            missing.append(f"{direction}人气方向")
+        if p.easy_to_receive is None:
+            missing.append(f"{direction}是否容易受注")
+        if p.first_eye_direction is None:
+            missing.append(f"{direction}是否大众第一眼方向")
     return GateResult(
         name="三项自然拉力闸门",
         ok=not missing,
@@ -225,21 +187,19 @@ def original_book_mode_gate(mode: OriginalBookMode) -> GateResult:
 
 
 def odds_gate(odds: list[CompanyOdds]) -> GateResult:
-    companies = {o.company for o in odds}
+    companies = {str(o.company).lower() for o in odds}
     missing: list[str] = []
-    if not any(c.lower() in {"william", "威廉"} for c in companies):
+    if not any(c in {"william", "威廉"} for c in companies):
         missing.append("William赔率")
-    if not any(c.lower() in {"ladbrokes", "立博"} for c in companies):
+    if not any(c in {"ladbrokes", "立博"} for c in companies):
         missing.append("Ladbrokes赔率")
-    if not any(c.lower() in {"avg", "average", "市场平均"} for c in companies):
-        missing.append("Avg赔率")
     if not odds:
         missing.append("赔率整体")
     return GateResult(
         name="赔率输入闸门",
         ok=not missing,
         missing=missing,
-        reason="缺少关键公司赔率，不得比较公司做盘。",
+        reason="缺少 William / Ladbrokes 核心赔率，不得比较公司做盘。Avg 缺失只作为信息质量降级，不阻断后端 evidence pack。",
     )
 
 
