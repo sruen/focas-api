@@ -322,6 +322,11 @@ class ExpectedOpeningInterval:
     confidence: str
     rule: str
     notes: List[str] = field(default_factory=list)
+    expected_interval_min_id: Optional[int] = None
+    expected_interval_max_id: Optional[int] = None
+    expected_interval_raw_zone: Optional[str] = None
+    expected_interval_range_status: str = "SINGLE_INTERVAL"
+    callable_interval_ids: List[int] = field(default_factory=list)
     p4_strength_key: Optional[str] = None
     static_strength_gap: Optional[str] = None
     dynamic_adjustment: Optional[str] = None
@@ -346,6 +351,9 @@ class OpeningIntervalAudit:
     expected_interval_id: Optional[int]
     interval_delta: Optional[int]
     deviation_label: str
+    expected_interval_min_id: Optional[int] = None
+    expected_interval_max_id: Optional[int] = None
+    expected_interval_raw_zone: Optional[str] = None
     semantic_tags: List[str] = field(default_factory=list)
     interpretation: str = ""
     hard_status: str = "UNCONFIRMED"
