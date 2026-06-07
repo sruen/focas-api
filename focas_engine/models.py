@@ -24,6 +24,8 @@ class TeamContext:
     rank: Optional[str] = None
     points: Optional[str] = None
     recent_matches: List[str] = field(default_factory=list)
+    recent_record_summary: Optional[str] = None
+    recent_goals_for_against: Optional[str] = None
     venue_adaptation: Optional[str] = None
     attack_state: Optional[str] = None
     defense_state: Optional[str] = None
@@ -32,6 +34,7 @@ class TeamContext:
     motivation: Optional[str] = None
     popularity_story: Optional[str] = None
     major_recent_matches: Optional[str] = None
+    tactical_style: Optional[str] = None
 
 
 @dataclass
@@ -55,6 +58,7 @@ class MatchContext:
     single_leg: Optional[bool] = None
     match_type: Optional[str] = None
     extra_time_or_penalties: Optional[str] = None
+    result_scope: Optional[str] = None
     real_home_away: Optional[bool] = None
     attention_level: Optional[str] = None
     league_for_table: Optional[str] = None
@@ -80,6 +84,10 @@ class StrengthContext:
 @dataclass
 class NaturalPull:
     direction: str
+    pull_score: Optional[str] = None
+    facts: Optional[str] = None
+    market_visibility: Optional[str] = None
+    source_reliability: Optional[str] = None
     strength: Optional[str] = None  # 强 / 中 / 弱
     facts: Optional[str] = None
     market_psychology: Optional[str] = None
