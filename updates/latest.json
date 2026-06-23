@@ -1,9 +1,9 @@
 {
-    "version":  "1.00",
-    "download_url":  "https://github.com/sruen/focas-api/releases/download/v1.00/FOCAS_Local_Offline_Setup_v1.00.exe",
-    "sha256":  "f00a51a10ea3c2b43cd884f55ca1ffef346a2482958a56c183fc0687a8b5f4c3",
-    "size":  115398655,
-    "notes":  "修复 Windows 启动器白屏(去除 PYTHONHOME 与启动后强制置前循环);窗口可正常显示与渲染。用户数据不受影响。",
+    "version":  "1.01",
+    "download_url":  "https://github.com/sruen/focas-api/releases/download/v1.01/FOCAS_Local_Offline_Setup_v1.01.exe",
+    "sha256":  "a3396b99f6ef74981fdfb00f9ba1ab1e3f9a1f89df62c4c6a729f899c2fda0cc",
+    "size":  115035044,
+    "notes":  "单场威廉希尔/立博赔率在线采集(欧赔/亚盘/大小球; 初赔/变赔历史/当前最新; 打开比赛自动采集); 列表同步自动捕获分析编号。沿用启动器白屏修复。",
     "mandatory":  false,
     "published_at":  "2026-06-23"
 }
