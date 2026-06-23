@@ -1,0 +1,9 @@
+{
+    "version":  "1.00",
+    "download_url":  "https://github.com/sruen/focas-api/releases/download/v1.00/FOCAS_Local_Offline_Setup_v1.00.exe",
+    "sha256":  "f00a51a10ea3c2b43cd884f55ca1ffef346a2482958a56c183fc0687a8b5f4c3",
+    "size":  115398655,
+    "notes":  "修复 Windows 启动器白屏(去除 PYTHONHOME 与启动后强制置前循环);窗口可正常显示与渲染。用户数据不受影响。",
+    "mandatory":  false,
+    "published_at":  "2026-06-23"
+}
